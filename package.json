@@ -1,0 +1,26 @@
+{
+  "name": "dorixona-hisoboti",
+  "productName": "Dorixona Hisoboti",
+  "version": "1.0.0",
+  "description": "Dorixona Hisoboti",
+  "author": "Dorixona Hisoboti",
+  "main": "main.js",
+  "scripts": { "vendor": "node scripts/vendor.js", "start": "electron .", "dist": "electron-builder --win" },
+  "dependencies": { "electron-updater": "6.3.9" },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "firebase": "10.14.1",
+    "jszip": "3.10.1",
+    "xlsx": "0.18.5"
+  },
+  "build": {
+    "appId": "uz.dorixona.hisoboti",
+    "productName": "Dorixona Hisoboti",
+    "files": ["main.js", "www/**/*"],
+    "directories": { "buildResources": "build", "output": "dist" },
+    "win": { "target": "nsis", "icon": "build/icon.png" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDir": true, "shortcutName": "Dorixona Hisoboti" },
+    "publish": [{ "provider": "github", "owner": "muxammadshokirxoja-cmd", "repo": "Dorixona-Hisoboti" }]
+  }
+}
