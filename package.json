@@ -20,7 +20,7 @@
     "files": ["main.js", "www/**/*"],
     "directories": { "buildResources": "build", "output": "dist" },
     "win": { "target": "nsis", "icon": "build/icon.png" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDir": true, "shortcutName": "Dorixona Hisoboti" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "Dorixona Hisoboti" },
     "publish": [{ "provider": "github", "owner": "muxammadshokirxoja-cmd", "repo": "Dorixona-Hisoboti" }]
   }
 }
