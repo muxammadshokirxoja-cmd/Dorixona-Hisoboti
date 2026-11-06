@@ -73,6 +73,7 @@ button.ht.ct b{font-size:17px}
 .cnn{font-weight:600;font-size:14px;width:118px;flex:none;white-space:normal;overflow-wrap:anywhere}
 .cnd{font-size:13px;color:var(--mut)}
 .cne{padding:5px 7px;font-size:12.5px;flex:none}
+.cnx{color:var(--red)}
 .edl{display:grid;gap:4px;font-size:13px;color:var(--mut)}
 .edl input,.edl select{width:100%;font-size:15px;color:var(--tx)}
 
@@ -171,6 +172,8 @@ aside{display:grid;gap:14px;min-width:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips button{padding:4px 10px;font-size:13px;font-weight:500;background:transparent;color:var(--tx);border-color:var(--line);border-width:2px}
 .chips button:hover{border-color:var(--ac)}
+.chx{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;color:var(--red);font-weight:700}
+.chx:hover{background:var(--red);color:var(--card)}
 .hint{color:var(--mut);font-size:13px;margin:0}
 .jami{position:sticky;bottom:env(safe-area-inset-bottom,0px);display:flex;justify-content:space-between;align-items:baseline;gap:12px;background:var(--yel);color:var(--yel-tx);border-radius:8px;padding:10px 12px;font-weight:700;font-size:18px}
 .jami b{font-size:24px;font-variant-numeric:tabular-nums}
@@ -609,7 +612,7 @@ function known(){
   var c={};FIXK.concat(RAS,cats,Object.keys(catMap)).forEach(function(n){c[n]=0});
   Object.keys(days).forEach(function(k){days[k].items.forEach(function(i){if(i.n!==NONAME&&!(ask&&ask.n===i.n))c[i.n]=(c[i.n]||0)+1})});
   var pin=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"];
-  return pin.concat(Object.keys(c).filter(function(n){return pin.indexOf(n)<0}).sort(function(a,b){return c[b]-c[a]||a.localeCompare(b)}));
+  return pin.concat(Object.keys(c).filter(function(n){return pin.indexOf(n)<0&&hid.indexOf(n)<0}).sort(function(a,b){return c[b]-c[a]||a.localeCompare(b)}));
 }
 function isKnown(n){return catOf(n)!=="Boshqa"}
 function askNew(r){
@@ -681,6 +684,8 @@ function chips(){
   var e=$("chips");e.innerHTML="";
   k.forEach(function(n){
     var b=document.createElement("button");b.type="button";b.textContent="+ "+n;
+    if(PINN.indexOf(n)<0){var x=document.createElement("span");x.className="chx";x.textContent="×";x.title="Roʻyxatdan oʻchirish";x.setAttribute("role","button");x.setAttribute("aria-label",n+" ni oʻchirish");
+      x.onclick=function(e){e.stopPropagation();nmDelAsk(n)};b.appendChild(x)}
     b.onclick=function(){
       var free=[].filter.call(document.querySelectorAll("#others .orow"),function(r){return !r.children[1].value.trim()})[0];
       if(free){free.children[1].value=n;free.children[0].focus();touch()}else addRow(n,0,true);
@@ -1079,7 +1084,7 @@ var ORDER=["Naxd pul","Humo","Uzcard","QR toʻlov","Naxd tovar","Oylik","Rasxod"
 var edN=null,catR={},custom=BASE.slice();
 function mergeCust(a){custom=BASE.concat(a.filter(function(c){return BASE.indexOf(c)<0}))}
 var catMap={"NAXD TOVAR":"Naxd tovar","NAM EKOMED":"Naxd tovar","TRICHAP":"Naxd tovar","SNIKERS":"Naxd tovar","OYLIK":"Oylik","KLIK":"Klik","JAHONMED BIO":"Jahonmed Bio"},mapDoc=null,curCat="",cm="";
-var CM0=Object.assign({},catMap);
+var CM0=Object.assign({},catMap),hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
 function allCats(){return ORDER.concat(custom.filter(function(c){return BASE.indexOf(c)<0}))}
 function userCats(){return custom.slice()}
 function catOf(n){
@@ -1098,7 +1103,9 @@ function saveMap(){
   var list=Object.keys(catMap).map(function(k){return [k,catMap[k]]});
   try{localStorage.setItem(KEY+"-map",JSON.stringify(list))}catch(e){}
   try{localStorage.setItem(KEY+"-cust",JSON.stringify(custom))}catch(e){}
-  var body={list:list.map(function(p){return {n:p[0],c:p[1]}}),cats:custom.slice()};
+  hid=hid.filter(function(n){return !catMap[n]});
+  try{localStorage.setItem(KEY+"-hid",JSON.stringify(hid))}catch(e){}
+  var body={list:list.map(function(p){return {n:p[0],c:p[1]}}),cats:custom.slice(),hid:hid.slice()};
   queue=queue.then(function(){if(mapDoc)return mapDoc.set(body)}).then(null,function(){st("Saqlanmadi. Internetni tekshiring.",true)});
 }
 function catNames(c){return known().filter(function(n){return catOf(n)===c})}
@@ -1108,6 +1115,7 @@ function renderCat(){
   var list=catNames(curCat),can=userCats().indexOf(curCat)>=0;
   $("catB").innerHTML=list.length?'<div class="cnl">'+list.map(function(n,i){
     var sel=can?'<button type="button" class="g cne" data-ed="'+esc(n)+'">Tahrirlash</button>':'';
+    if(PINN.indexOf(n)<0)sel+='<button type="button" class="g cne cnx" data-nd="'+esc(n)+'" title="Roʻyxatdan oʻchirish" aria-label="'+esc(n)+' ni oʻchirish">✕</button>';
     PAIR["cf"+i]="ct"+i;PAIR["ct"+i]="cf"+i;
     return '<div class="cnr"><span class="cnn">'+esc(n)+'</span><span class="cnd">Boshi:</span>'+dpHtml("cf"+i,"Boshlanish sanasi")+'<span class="cnd">Oxiri:</span>'+dpHtml("ct"+i,"Tugash sanasi")+'<button type="button" class="cng" id="cg'+i+'" data-cg="'+i+'" title="Hisoblash"><span>✓</span><span class="cnv" id="cr'+i+'"></span></button>'+sel+'</div>';
   }).join("")+'</div><div class="jami catj"><span>JAMI</span><b id="catJ">0</b></div>':'<p class="empty" style="padding:0">Bu kategoriyada hali nom yoʻq.</p>';
@@ -1118,7 +1126,15 @@ function renderCat(){
     catCalc(n,i);
   });
 }
+function nmDelAsk(n){
+  var k=Object.keys(days).filter(function(d){return days[d].items.some(function(i){return i.n===n})}).length;
+  cdMode="nm";cdName=n;
+  $("cdw").textContent=n;$("cdq").lastChild.textContent="Bu nom roʻyxatdan oʻchirilsinmi?";
+  $("cdh").textContent=k?"Bu nom "+k+" kunlik savdoda ishlatilgan. Oʻsha yozuvlar oʻchmaydi, lekin kategoriyasiz boʻlib qoladi.":"Bu nom hali hech qaysi kunda ishlatilmagan.";
+  $("cdov").hidden=false;$("cdno").focus();
+}
 function catDelAsk(){
+  cdMode="cat";$("cdq").lastChild.textContent="Bu kategoriya oʻchirilsinmi?";
   var n=catNames(curCat).length;
   $("cdw").textContent=curCat;
   $("cdh").textContent=n?"Undagi "+n+" ta nom kategoriyasiz qoladi. Ularni keyin boshqa kategoriyaga qoʻshish kerak boʻladi. Yozilgan savdolar oʻchmaydi.":"Bu kategoriyada nom yoʻq. Yozilgan savdolar oʻchmaydi.";
@@ -1126,6 +1142,14 @@ function catDelAsk(){
 }
 function catDelGo(yes){
   $("cdov").hidden=true;
+  if(cdMode==="nm"){
+    var nm=cdName;cdMode="";
+    if(!yes)return;
+    delete catMap[nm];if(hid.indexOf(nm)<0)hid.push(nm);
+    if(cats.indexOf(nm)>=0){cats=cats.filter(function(x){return x!==nm});saveCats()}
+    saveMap();chips();renderHome();if(tab==="cat")renderCat();say("Roʻyxatdan oʻchirildi: "+nm);
+    return;
+  }
   if(!yes){$("catDel").focus();return}
   var c=curCat;
   custom=custom.filter(function(x){return x!==c});
@@ -1195,7 +1219,7 @@ function setTab(t){
 }
 function refresh(){
   aside();chips();
-  if(!ask&&!delR&&!edN&&!dirty&&!pending[cur]&&!$("fm").contains(document.activeElement))fillForm();else live();
+  if(!ask&&!delR&&!edN&&!dirty&&!pending[cur]&&(locked||!days[cur])&&!$("fm").contains(document.activeElement))fillForm();else live();
   if(tab==="rep")renderRep();
   if(tab==="imp")renderWord();
   if(tab==="cat")renderCat();
@@ -1227,6 +1251,7 @@ function bind(){
     var r=e.target.closest(".orow");setTimeout(function(){askNew(r)},0);
   });
   $("catDel").onclick=catDelAsk;
+  $("catB").addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-nd]");if(b)nmDelAsk(b.dataset.nd)});
   $("cdyes").onclick=function(){catDelGo(true)};
   $("cdno").onclick=function(){catDelGo(false)};
   $("cdov").addEventListener("keydown",function(e){
@@ -1384,7 +1409,7 @@ function startPh(ph,name){
   mapDoc.onSnapshot(function(d){
     var b=d.exists&&d.data();
     if(!d.exists&&d.metadata.fromCache)return;
-    catMap=Object.assign({},CM0);custom=BASE.slice();
+    catMap=Object.assign({},CM0);custom=BASE.slice();hid=b&&Array.isArray(b.hid)?b.hid.slice():[];
     if(b&&Array.isArray(b.list))b.list.forEach(function(p){catMap[p.n]=p.c});
     if(b&&Array.isArray(b.cats))mergeCust(b.cats);
     chips();renderHome();if(tab==="cat")renderCat();
