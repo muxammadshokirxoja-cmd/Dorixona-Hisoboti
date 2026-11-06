@@ -612,7 +612,7 @@ function known(){
   var c={};FIXK.concat(RAS,cats,Object.keys(catMap)).forEach(function(n){c[n]=0});
   Object.keys(days).forEach(function(k){days[k].items.forEach(function(i){if(i.n!==NONAME&&!(ask&&ask.n===i.n))c[i.n]=(c[i.n]||0)+1})});
   var pin=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"];
-  return pin.concat(Object.keys(c).filter(function(n){return pin.indexOf(n)<0&&hid.indexOf(n)<0}).sort(function(a,b){return c[b]-c[a]||a.localeCompare(b)}));
+  return pin.filter(function(n){return hid.indexOf(n)<0}).concat(Object.keys(c).filter(function(n){return pin.indexOf(n)<0&&hid.indexOf(n)<0}).sort(function(a,b){return c[b]-c[a]||a.localeCompare(b)}));
 }
 function isKnown(n){return catOf(n)!=="Boshqa"}
 function askNew(r){
@@ -684,7 +684,7 @@ function chips(){
   var e=$("chips");e.innerHTML="";
   k.forEach(function(n){
     var b=document.createElement("button");b.type="button";b.textContent="+ "+n;
-    if(PINN.indexOf(n)<0){var x=document.createElement("span");x.className="chx";x.textContent="×";x.title="Roʻyxatdan oʻchirish";x.setAttribute("role","button");x.setAttribute("aria-label",n+" ni oʻchirish");
+    {var x=document.createElement("span");x.className="chx";x.textContent="×";x.title="Roʻyxatdan oʻchirish";x.setAttribute("role","button");x.setAttribute("aria-label",n+" ni oʻchirish");
       x.onclick=function(e){e.stopPropagation();nmDelAsk(n)};b.appendChild(x)}
     b.onclick=function(){
       var free=[].filter.call(document.querySelectorAll("#others .orow"),function(r){return !r.children[1].value.trim()})[0];
@@ -739,6 +739,8 @@ function saveDay(){
     var old=days[cur],hist=old&&old.hist?old.hist.slice():[],df=old?diffItems(old.items,it):[];
     if(df.length){var now=new Date();hist.push({t:dmy(iso(now))+" "+pad(now.getHours())+":"+pad(now.getMinutes()),d:df});hist=hist.slice(-50)}
     days[cur]={date:cur,items:it,at:Date.now(),hist:hist};
+    var uh=hid.filter(function(n){return !it.some(function(i){return i.n===n})});
+    if(uh.length!==hid.length){hid=uh;saveMap()}
   }else delete days[cur];
   persist();write(cur);chips();renderHome();fillForm();
   say(it.length?"Saqlandi: "+dmy(cur):dmy(cur)+" yozuvi oʻchirildi");
@@ -1103,7 +1105,7 @@ function saveMap(){
   var list=Object.keys(catMap).map(function(k){return [k,catMap[k]]});
   try{localStorage.setItem(KEY+"-map",JSON.stringify(list))}catch(e){}
   try{localStorage.setItem(KEY+"-cust",JSON.stringify(custom))}catch(e){}
-  hid=hid.filter(function(n){return !catMap[n]});
+  hid=hid.filter(function(n){return !catMap[n]||CM0[n]});
   try{localStorage.setItem(KEY+"-hid",JSON.stringify(hid))}catch(e){}
   var body={list:list.map(function(p){return {n:p[0],c:p[1]}}),cats:custom.slice(),hid:hid.slice()};
   queue=queue.then(function(){if(mapDoc)return mapDoc.set(body)}).then(null,function(){st("Saqlanmadi. Internetni tekshiring.",true)});
@@ -1115,7 +1117,7 @@ function renderCat(){
   var list=catNames(curCat),can=userCats().indexOf(curCat)>=0;
   $("catB").innerHTML=list.length?'<div class="cnl">'+list.map(function(n,i){
     var sel=can?'<button type="button" class="g cne" data-ed="'+esc(n)+'">Tahrirlash</button>':'';
-    if(PINN.indexOf(n)<0)sel+='<button type="button" class="g cne cnx" data-nd="'+esc(n)+'" title="Roʻyxatdan oʻchirish" aria-label="'+esc(n)+' ni oʻchirish">✕</button>';
+    sel+='<button type="button" class="g cne cnx" data-nd="'+esc(n)+'" title="Roʻyxatdan oʻchirish" aria-label="'+esc(n)+' ni oʻchirish">✕</button>';
     PAIR["cf"+i]="ct"+i;PAIR["ct"+i]="cf"+i;
     return '<div class="cnr"><span class="cnn">'+esc(n)+'</span><span class="cnd">Boshi:</span>'+dpHtml("cf"+i,"Boshlanish sanasi")+'<span class="cnd">Oxiri:</span>'+dpHtml("ct"+i,"Tugash sanasi")+'<button type="button" class="cng" id="cg'+i+'" data-cg="'+i+'" title="Hisoblash"><span>✓</span><span class="cnv" id="cr'+i+'"></span></button>'+sel+'</div>';
   }).join("")+'</div><div class="jami catj"><span>JAMI</span><b id="catJ">0</b></div>':'<p class="empty" style="padding:0">Bu kategoriyada hali nom yoʻq.</p>';
