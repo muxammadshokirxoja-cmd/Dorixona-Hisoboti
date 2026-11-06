@@ -42,6 +42,9 @@ body.rh .ro,body.rh .cne{display:none!important}
 .lg{min-height:100vh;display:grid;place-items:center;padding:16px}
 .lg h1{text-align:center}
 .rhl{grid-column:1/-1;display:grid;gap:12px}
+.rhw{display:grid;gap:4px;min-width:0}
+.rhw button.pdl{justify-self:end;padding:3px 8px;font-size:12.5px;color:var(--red);border-color:transparent;background:transparent;font-weight:500}
+.rcp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}
 .rhc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 button.rhp{background:var(--card);color:var(--tx);border:2px solid var(--bd);border-radius:12px;padding:16px;text-align:left;display:grid;gap:3px;font-weight:400}
 button.rhp:hover{border-color:var(--ac)}
@@ -297,7 +300,7 @@ textarea{width:100%;min-height:160px;font-variant-numeric:tabular-nums}
 <div class="w" id="app" hidden>
   <header class="top">
     <div><h1>Dorixona Hisoboti</h1><div class="firm" id="wh"></div></div>
-    <button type="button" class="g" id="out" hidden>Chiqish</button>
+    <div class="bar"><button type="button" class="g" id="pw" hidden>Parol</button><button type="button" class="g" id="out" hidden>Chiqish</button></div>
   </header>
   <p id="note" class="note" hidden></p>
   <section id="v-main" class="hm">
@@ -471,6 +474,20 @@ textarea{width:100%;min-height:160px;font-variant-numeric:tabular-nums}
   <div class="askd" role="alertdialog" aria-modal="true" aria-labelledby="svq">
     <p id="svq"><b>Saqlanmagan yozuv bor</b><br>Saqlab qoʻyaymi?</p>
     <div class="bar"><button type="button" id="sv1">Saqlash</button><button type="button" class="dl" id="sv2">Saqlamaslik</button><button type="button" class="g" id="sv3">Bekor qilish</button></div>
+  </div>
+</div>
+<div id="pwov" class="ask" hidden>
+  <form class="askd" id="pwf" autocomplete="off">
+    <p><b>Parolni oʻzgartirish</b></p>
+    <label class="edl">Hozirgi parol<input id="pw0" type="password" required></label>
+    <label class="edl">Yangi parol (kamida 6 belgi)<input id="pw1" type="password" required></label>
+    <div class="bar"><button>Saqlash</button><button type="button" class="g" id="pwx">Bekor qilish</button></div>
+  </form>
+</div>
+<div id="pdov" class="ask" hidden>
+  <div class="askd" role="alertdialog" aria-modal="true">
+    <p><b id="pdw"></b><br>Bu dorixona va uning barcha savdo yozuvlari butunlay oʻchirilsinmi? Qaytarib boʻlmaydi.</p>
+    <div class="bar"><button type="button" class="dlx" id="pdy">Ha, oʻchirish</button><button type="button" class="g" id="pdn">Yoʻq</button></div>
   </div>
 </div>
 <div id="rdov" class="ask" hidden>
@@ -732,6 +749,10 @@ function mShift(m,n){var a=m.split("-"),d=new Date(+a[0],+a[1]-1+n,1);return d.g
 
 /* — Hisobot — */
 function nice(v){var p=Math.pow(10,Math.floor(Math.log10(v))),m=v/p;return (m<=1?1:m<=2?2:m<=5?5:10)*p}
+function phCompare(f,t){
+  var rows=PHS.map(function(p){return {n:p.name,v:phRange(p.id,f,t)}}).sort(function(a,b){return b.v-a.v}),mx=rows.length?rows[0].v:0,tot=rows.reduce(function(a,r){return a+r.v},0);
+  return '<div class="box"><h2>Dorixonalar boʻyicha</h2><div class="brk">'+rows.map(function(r){return '<div class="rcp"><span class="nm2">'+esc(r.n)+' <small style="color:var(--mut)">'+(tot?Math.round(r.v/tot*100):0)+'%</small></span><span class="v">'+fmt(r.v)+'</span><span class="tr"><i style="width:'+(mx?r.v/mx*100:0)+'%"></i></span></div>'}).join("")+'</div></div>';
+}
 function chart(f,t,ks){
   var pts=[],span=(pd(t)-pd(f))/864e5;
   if(span>62){
@@ -782,7 +803,7 @@ function renderRep(){
    +'<div class="tile"><small>Kunlik oʻrtacha</small><b>'+fmt(tot/ks.length)+'</b><span>soʻm</span></div>'
    +'<div class="tile"><small>Eng yuqori kun</small><b>'+fmt(sum(days[best]))+'</b><span>'+dmy(best)+'</span></div>'
    +'<div class="tile"><small>Eng past kun</small><b>'+fmt(sum(days[low]))+'</b><span>'+dmy(low)+'</span></div></div>'
-   +cmp+chart(f,t,ks);
+   +cmp+(ROLE==="rh"&&scope==="all"?phCompare(f,t):"")+chart(f,t,ks);
 }
 
 /* — Excel — */
@@ -1115,6 +1136,7 @@ function renderHome(){
 function setTab(t){
   if(dirty&&tab==="enter"&&t!=="enter"){guard(function(){setTab(t)});return}
   tab=t;
+  if(t==="main"&&ROLE==="rh"){scope="";head="Rahbar";showHead()}
   ["main","home","cats","cat","enter","rep","imp","xl"].forEach(function(k){$("v-"+k).hidden=k!==t});
   if(t==="imp")renderWord();
   if(t==="cat")renderCat();
@@ -1289,7 +1311,7 @@ function initUi(){
   var l=sorted().pop();month=(l||cur).slice(0,7);
   fillForm();aside();renderHome();
 }
-function showApp(){$("lg").hidden=true;$("app").hidden=false;$("out").hidden=false}
+function showApp(){$("lg").hidden=true;$("app").hidden=false;$("out").hidden=false;$("pw").hidden=false}
 function startPh(ph,name){
   ROLE="d";PH=ph;KEY="ks-"+ph;head=name||ph;loadLocal();initUi();showApp();showHead();
   try{
@@ -1342,12 +1364,28 @@ function applyScope(){
   showHead();refresh();
 }
 function setScope(id){scope=id;applyScope();setTab("home")}
+function phMonth(id,m){var d=allDays[id]||{};return Object.keys(d).reduce(function(a,k){return a+(k.slice(0,7)===m?sum(d[k]):0)},0)}
+function phRange(id,f,t){var d=allDays[id]||{};return Object.keys(d).reduce(function(a,k){return a+(k>=f&&k<=t?sum(d[k]):0)},0)}
+var pdId="";
+async function delPh(id){
+  try{
+    var sn=await fdb.collection("ph/"+id+"/days").get();
+    for(var i=0;i<sn.docs.length;i++)await sn.docs[i].ref.delete();
+    await fdb.doc("ph/"+id+"/settings/map").delete();
+    await fdb.doc("ph/"+id+"/settings/cats").delete();
+    var us=await fdb.collection("users").where("ph","==",id).get();
+    for(var j=0;j<us.docs.length;j++)await us.docs[j].ref.delete();
+    await fdb.doc("ph/"+id).delete();
+    delete allDays[id];delete allMap[id];delete subs[id];
+    say("Dorixona oʻchirildi. Bu login qayta ishlatilmaydi, yangi login bering.");
+  }catch(e){say("Oʻchmadi. Firebase Rules yangilanganini tekshiring.",true)}
+}
 function phTotal(id,day){var d=(allDays[id]||{})[day];return d?sum(d):0}
 function renderRh(){
   var t=today(),e=$("rhl"),all=PHS.reduce(function(a,p){return a+phTotal(p.id,t)},0);
   var ae=document.activeElement,keep=ae&&ae.closest&&ae.closest("#phadd");
   if(!keep)e.innerHTML='<div class="rhc"><button type="button" class="rhp all" data-sc="all"><b>Umumiy</b><small>Bugun: '+fmt(all)+' soʻm</small></button>'
-    +PHS.map(function(p){return '<button type="button" class="rhp" data-sc="'+esc(p.id)+'"><b>'+esc(p.name)+'</b><small>Bugun: '+fmt(phTotal(p.id,t))+' soʻm</small><small>Login: '+esc(p.id)+'</small></button>'}).join("")
+    +PHS.map(function(p){return '<div class="rhw"><button type="button" class="rhp" data-sc="'+esc(p.id)+'"><b>'+esc(p.name)+'</b><small>Bugun: '+fmt(phTotal(p.id,t))+' soʻm</small><small>'+UZM[+t.slice(5,7)-1]+': '+fmt(phMonth(p.id,t.slice(0,7)))+' soʻm</small><small>Login: '+esc(p.id)+'</small></button><button type="button" class="pdl" data-pd="'+esc(p.id)+'">Oʻchirish</button></div>'}).join("")
     +'</div><form class="rha" id="phadd" autocomplete="off"><h2>+ Dorixona qoʻshish</h2><div class="bar"><input id="pn" placeholder="Dorixona nomi" required><input id="pl" placeholder="Login (lotin harflarda)" autocapitalize="none" required><input id="pp" placeholder="Parol (kamida 6 belgi)" required><button>Qoʻshish</button></div></form>';
 }
 async function addPh(){
@@ -1378,7 +1416,13 @@ function watchPh(p){
 function startRh(){
   ROLE="rh";KEY="ks-rahbar";head="Rahbar";document.body.classList.add("rh");initUi();showApp();showHead();
   $("rhl").hidden=false;renderRh();
-  document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-sc]");if(b)setScope(b.dataset.sc)});
+  document.addEventListener("click",function(e){
+    var b=e.target.closest&&e.target.closest("[data-sc]");if(b)setScope(b.dataset.sc);
+    var d=e.target.closest&&e.target.closest("[data-pd]");
+    if(d){pdId=d.dataset.pd;$("pdw").textContent=(PHS.filter(function(p){return p.id===pdId})[0]||{}).name||pdId;$("pdov").hidden=false;$("pdn").focus()}
+  });
+  $("pdn").onclick=function(){$("pdov").hidden=true};
+  $("pdy").onclick=function(){$("pdov").hidden=true;delPh(pdId)};
   document.addEventListener("submit",function(e){if(e.target.id==="phadd"){e.preventDefault();addPh()}});
   fdb.collection("ph").onSnapshot(function(s){
     PHS=s.docs.map(function(d){return {id:d.id,name:d.data().name||d.id}});
@@ -1404,6 +1448,17 @@ function boot(){
     if(p.length<6){lgErr("Parol katagiga yangi parol yozing, kamida 6 belgi.");return}
     try{await auth.createUserWithEmailAndPassword(RAH,p)}catch(x){lgErr(/email-already/.test(x.code||"")?"Rahbar paroli oldin oʻrnatilgan. Login: rahbar":authMsg(x))}
   };
+  $("pw").onclick=function(){$("pw0").value="";$("pw1").value="";$("pwov").hidden=false;$("pw0").focus()};
+  $("pwx").onclick=function(){$("pwov").hidden=true};
+  $("pwf").addEventListener("submit",async function(e){
+    e.preventDefault();
+    try{
+      var u=auth.currentUser;
+      await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email,$("pw0").value));
+      await u.updatePassword($("pw1").value);
+      $("pwov").hidden=true;say("Parol oʻzgartirildi");
+    }catch(x){say(authMsg(x),true)}
+  });
   $("out").onclick=function(){guard(function(){auth.signOut().then(function(){location.reload()})})};
   auth.onAuthStateChanged(async function(u){
     if(!u){$("app").hidden=true;$("lg").hidden=false;return}
