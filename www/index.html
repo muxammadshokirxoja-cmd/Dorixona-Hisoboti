@@ -577,7 +577,13 @@ function inRange(f,t){return sorted().filter(function(k){return k>=f&&k<=t})}
 function say(t,bad){var m=$("msg");m.textContent=t;m.className=bad?"msg bad":"msg";m.hidden=false;clearTimeout(msgT);msgT=setTimeout(function(){m.hidden=true},3500)}
 function st(t,bad){var e=$("st");e.textContent=t;e.className=bad?"st bad":"st"}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(days))}catch(e){}}
+function ordItems(items){
+  if(!ORD.length)return items.slice();
+  var ix={};ORD.forEach(function(n,i){ix[n]=i});
+  return items.map(function(x,i){return [x,i]}).sort(function(a,b){var p=a[0].n in ix?ix[a[0].n]:1e6,q=b[0].n in ix?ix[b[0].n]:1e6;return p-q||a[1]-b[1]}).map(function(a){return a[0]});
+}
 function text(date,items){
+  items=ordItems(items);
   var t=dmy(date)+"\n";
   items.forEach(function(i){t+=fmt(i.a)+" – "+i.n+(i.iz?" ("+i.iz+")":"")+"\n"});
   return t+"JAMI: "+fmt(items.reduce(function(a,i){return a+i.a},0));
@@ -622,8 +628,8 @@ function nextRow(){
   if(last&&!num(last.children[0].value)){if(document.activeElement===last.children[0])$("sv").focus();else last.children[0].focus()}else addRow("",0,true);
 }
 function fillForm(){
-  var d=days[cur],items=d?d.items:[];
-  $("others").innerHTML="";
+  var d=days[cur],items=d?ordItems(d.items):[];
+  $("others").innerHTML="";moved=false;
   items.forEach(function(x){addRow(x.n===NONAME?"":x.n,x.a,false,x.iz)});
   if(!items.length)addRow("",0);
   dpSet("dt",cur);
@@ -768,6 +774,7 @@ function saveDay(){
     var old=days[cur],hist=old&&old.hist?old.hist.slice():[],df=old?diffItems(old.items,it):[];
     if(df.length){var now=new Date();hist.push({t:dmy(iso(now))+" "+pad(now.getHours())+":"+pad(now.getMinutes()),d:df});hist=hist.slice(-50)}
     days[cur]={date:cur,items:it,at:Date.now(),hist:hist};
+    if(moved){var nn=[];it.forEach(function(i){if(nn.indexOf(i.n)<0)nn.push(i.n)});ORD=nn.concat(ORD.filter(function(n){return nn.indexOf(n)<0}));moved=false;saveMap()}
     var uh=hid.filter(function(n){return !it.some(function(i){return i.n===n})});
     if(uh.length!==hid.length){hid=uh;saveMap()}
   }else delete days[cur];
@@ -1122,7 +1129,7 @@ var ORDER=["Naxd pul","Humo","Uzcard","QR toʻlov","Naxd tovar","Oylik","Rasxod"
 var edN=null,catR={},custom=BASE.slice();
 function mergeCust(a){custom=BASE.concat(a.filter(function(c){return BASE.indexOf(c)<0}))}
 var catMap={"NAXD TOVAR":"Naxd tovar","NAM EKOMED":"Naxd tovar","TRICHAP":"Naxd tovar","SNIKERS":"Naxd tovar","OYLIK":"Oylik","KLIK":"Klik","JAHONMED BIO":"Jahonmed Bio"},mapDoc=null,curCat="",cm="";
-var CM0=Object.assign({},catMap),hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
+var CM0=Object.assign({},catMap),ORD=[],moved=false,hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
 function allCats(){return ORDER.concat(custom.filter(function(c){return BASE.indexOf(c)<0}))}
 function userCats(){return allCats()}
 function catOf(n){
@@ -1142,8 +1149,8 @@ function saveMap(){
   try{localStorage.setItem(KEY+"-map",JSON.stringify(list))}catch(e){}
   try{localStorage.setItem(KEY+"-cust",JSON.stringify(custom))}catch(e){}
   hid=hid.filter(function(n){return !catMap[n]||CM0[n]});
-  try{localStorage.setItem(KEY+"-hid",JSON.stringify(hid))}catch(e){}
-  var body={list:list.map(function(p){return {n:p[0],c:p[1]}}),cats:custom.slice(),hid:hid.slice()};
+  try{localStorage.setItem(KEY+"-hid",JSON.stringify(hid));localStorage.setItem(KEY+"-ord",JSON.stringify(ORD))}catch(e){}
+  var body={list:list.map(function(p){return {n:p[0],c:p[1]}}),cats:custom.slice(),hid:hid.slice(),ord:ORD.slice()};
   queue=queue.then(function(){if(mapDoc)return mapDoc.set(body)}).then(null,function(){st("Saqlanmadi. Internetni tekshiring.",true)});
 }
 function catNames(c){return known().filter(function(n){return catOf(n)===c})}
@@ -1295,7 +1302,7 @@ function bind(){
     var b=t.getBoundingClientRect();
     if(e.clientY<b.top+b.height/2)t.parentNode.insertBefore(drg,t);else t.parentNode.insertBefore(drg,t.nextSibling);
   });
-  function drgEnd(){if(!drg)return;drg.classList.remove("drag");document.body.classList.remove("dragging");drg=null;touch()}
+  function drgEnd(){if(!drg)return;drg.classList.remove("drag");document.body.classList.remove("dragging");drg=null;moved=true;touch()}
   document.addEventListener("pointerup",drgEnd);document.addEventListener("pointercancel",drgEnd);
   $("fm").addEventListener("keydown",function(e){
     if(!e.altKey||(e.key!=="ArrowUp"&&e.key!=="ArrowDown")||locked)return;
@@ -1304,7 +1311,7 @@ function bind(){
     var o=e.key==="ArrowUp"?r.previousElementSibling:r.nextElementSibling;
     if(!o||o.classList.contains("orh"))return;
     if(e.key==="ArrowUp")r.parentNode.insertBefore(r,o);else r.parentNode.insertBefore(o,r);
-    e.target.focus();touch();
+    e.target.focus();moved=true;touch();
   });
   $("fm").addEventListener("focusin",function(e){if(e.target.classList.contains("amt")||e.target.classList.contains("nm"))e.target.select()});
   $("fm").addEventListener("click",function(e){if(e.target.classList.contains("nm"))e.target.select()});
@@ -1472,7 +1479,7 @@ function startPh(ph,name){
   mapDoc.onSnapshot(function(d){
     var b=d.exists&&d.data();
     if(!d.exists&&d.metadata.fromCache)return;
-    catMap=Object.assign({},CM0);custom=BASE.slice();hid=b&&Array.isArray(b.hid)?b.hid.slice():[];
+    catMap=Object.assign({},CM0);custom=BASE.slice();hid=b&&Array.isArray(b.hid)?b.hid.slice():[];ORD=b&&Array.isArray(b.ord)?b.ord.slice():[];
     if(b&&Array.isArray(b.list))b.list.forEach(function(p){catMap[p.n]=p.c});
     if(b&&Array.isArray(b.cats))mergeCust(b.cats);
     chips();renderHome();if(tab==="cat")renderCat();
@@ -1502,7 +1509,7 @@ function applyScope(){
     });
     var mm=allMap[id]||{};Object.assign(m,mm.m||{});c=c.concat(mm.c||[]);
   });
-  days=o;catMap=m;mergeCust(c);
+  days=o;catMap=m;mergeCust(c);ORD=ids.length===1?((allMap[ids[0]]||{}).o||[]).slice():[];
   head=scope==="all"?"Barcha dorixonalar":(PHS.filter(function(p){return p.id===scope})[0]||{}).name||scope;
   showHead();refresh();
 }
@@ -1628,7 +1635,7 @@ function watchPh(p){
   fdb.doc("ph/"+p.id+"/settings/map").onSnapshot(function(d){
     var b=d.exists&&d.data(),m={};
     if(b&&Array.isArray(b.list))b.list.forEach(function(x){m[x.n]=x.c});
-    allMap[p.id]={m:m,c:b&&b.cats||[]};applyScope();
+    allMap[p.id]={m:m,c:b&&b.cats||[],o:b&&b.ord||[]};applyScope();
   },function(){});
 }
 function startRh(){
