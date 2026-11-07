@@ -472,6 +472,7 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
     </div>
     <div class="bar">
       <input type="search" id="ws" list="nl" placeholder="Sabab boʻyicha qidirish" aria-label="Sabab boʻyicha qidirish" autocomplete="off">
+      <button type="button" class="g ro" id="wimp">Word fayldan olish</button><input type="file" id="wimf" accept=".docx" hidden>
       <button class="wen ro" data-tab="enter">Kunlik savdo yozish</button>
     </div>
     <div class="miss" id="wm" hidden></div>
@@ -525,6 +526,13 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
   <div class="askd" role="alertdialog" aria-modal="true" aria-labelledby="rdq">
     <p id="rdq"><b id="rdw"></b><br>Bu qator oʻchirilsinmi?</p>
     <div class="bar"><button type="button" class="dlx" id="rdyes">Ha, oʻchirish</button><button type="button" class="g" id="rdno">Yoʻq</button></div>
+  </div>
+</div>
+<div id="imov" class="ask" hidden>
+  <div class="askd" role="alertdialog" aria-modal="true" aria-labelledby="imq">
+    <p id="imq"><b>Word fayldan olish</b></p>
+    <div class="hint" id="imh" style="display:grid;gap:6px"></div>
+    <div class="bar"><button type="button" id="imyes">Ha, dasturga yuklash</button><button type="button" class="g" id="imno">Bekor qilish</button></div>
   </div>
 </div>
 <div id="cdov" class="ask" hidden>
@@ -1187,6 +1195,51 @@ function nmDelAsk(n){
   $("cdh").textContent=k?"Bu nom "+k+" kunlik savdoda ishlatilgan. Oʻsha yozuvlar oʻchmaydi, lekin kategoriyasiz boʻlib qoladi.":"Bu nom hali hech qaysi kunda ishlatilmagan.";
   $("cdov").hidden=false;$("cdno").focus();
 }
+var IMP=null;
+var IMAL={"NAXT PUL":"NAXD PUL","NAXT":"NAXD PUL","XUMO":"HUMO","UZARD":"UZCARD","QR TOLOV":"QR KOD","QR ORQALI":"QR KOD","RASXOT":"RASXOD","NAXT TOVAR":"NAXD TOVAR"};
+function parseWord(lines){
+  var out=[],cur=null,m,fix=[];
+  function item(a,n){
+    n=n.trim().replace(/\s+/g," ").toUpperCase();var iz="",mm=/^(.*?)\s*\((.*)\)\s*$/.exec(n);
+    if(mm&&mm[1]){n=mm[1].trim();iz=mm[2].trim()}
+    if(IMAL[n]){if(fix.indexOf(n)<0)fix.push(n);n=IMAL[n]}
+    var it={n:n,a:a};if(iz)it.iz=iz.charAt(0)+iz.slice(1).toLowerCase();cur.items.push(it);
+  }
+  lines.forEach(function(l){
+    l=l.replace(/ /g," ").trim();if(!l)return;
+    if(m=/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(l)){cur={k:m[3]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[1]).slice(-2),items:[],j:null};out.push(cur);return}
+    if(!cur)return;
+    if(m=/^(JAMI|OPSHI)\s*[:–—-]?\s*([\d.\s]+)$/i.exec(l)){cur.j=parseInt(digits(m[2]),10);return}
+    if(m=/^(\d[\d.\s]*)\s*[–—-]\s*(.+)$/.exec(l)){item(parseInt(digits(m[1]),10)||0,m[2]);return}
+    if(m=/^(.+?)\s*[–—-]\s*(\d[\d.\s]*)$/.exec(l)){item(parseInt(digits(m[2]),10)||0,m[1]);return}
+  });
+  return {days:out.filter(function(d){return d.items.length}),fix:fix};
+}
+function impFile(f){
+  if(!f)return;
+  if(!window.JSZip)return say("Fayl oʻqilmadi. Internetni tekshirib, qayta urinib koʻring.",true);
+  JSZip.loadAsync(f).then(function(z){var x=z.file("word/document.xml");if(!x)throw 0;return x.async("string")}).then(function(xml){
+    var lines=(xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g)||[]).map(function(p){return (p.match(/<w:t[^>]*>[^<]*<\/w:t>/g)||[]).map(function(t){return t.replace(/<[^>]+>/g,"")}).join("").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'")});
+    var r=parseWord(lines);
+    if(!r.days.length)return say("Faylda kunlik savdo topilmadi.",true);
+    var ks=r.days.map(function(d){return d.k}).sort(),ex=r.days.filter(function(d){return days[d.k]}),n=0,bad=[];
+    r.days.forEach(function(d){n+=d.items.length;var t=d.items.reduce(function(a,i){return a+val(i)},0);if(d.j!=null&&d.j!==t)bad.push(dmy(d.k)+": Wordda "+fmt(d.j)+", dasturda "+fmt(t))});
+    IMP=r.days.filter(function(d){return !days[d.k]});
+    var h='<span><b>'+r.days.length+' kun</b> topildi ('+dmy(ks[0])+' – '+dmy(ks[ks.length-1])+'), '+n+' ta yozuv.</span>';
+    if(ex.length)h+='<span>'+ex.length+' kun dasturda allaqachon bor, ular oʻzgartirilmaydi: '+ex.map(function(d){return dmy(d.k).slice(0,5)}).join(", ")+'</span>';
+    if(r.fix.length)h+='<span>Nomlar toʻgʻrilandi: '+r.fix.map(function(x){return esc(x)+" → "+esc(IMAL[x])}).join(", ")+'</span>';
+    h+='<span>Qavs ichidagi soʻz izohga oʻtadi: “NAM EKOMED (TORTMA)” → NAM EKOMED, izoh: Tortma.</span>';
+    if(bad.length)h+='<span style="color:var(--red)">JAMI farq qiladigan kunlar ('+bad.length+'): '+bad.map(esc).join("; ")+'</span>';
+    if(!IMP.length)h+='<span style="color:var(--red)">Yuklanadigan yangi kun yoʻq.</span>';
+    $("imh").innerHTML=h;$("imyes").hidden=!IMP.length;$("imov").hidden=false;($("imyes").hidden?$("imno"):$("imyes")).focus();
+  }).catch(function(){say("Bu Word (.docx) fayl oʻqilmadi.",true)});
+}
+function impGo(yes){
+  $("imov").hidden=true;
+  if(!yes||!IMP){IMP=null;return}
+  IMP.forEach(function(d){days[d.k]={date:d.k,items:d.items,at:Date.now(),hist:[]};write(d.k)});
+  persist();var c=IMP.length;IMP=null;renderHome();renderWord();say(c+" kun dasturga yuklandi.");
+}
 function catDelAsk(){
   cdMode="cat";$("cdq").lastChild.textContent="Bu kategoriya oʻchirilsinmi?";
   var n=catNames(curCat).length;
@@ -1330,6 +1383,10 @@ function bind(){
     var r=e.target.closest(".orow");setTimeout(function(){askNew(r)},0);
   });
   $("catDel").onclick=catDelAsk;
+  $("wimp").onclick=function(){$("wimf").value="";$("wimf").click()};
+  $("wimf").addEventListener("change",function(){impFile(this.files[0])});
+  $("imyes").onclick=function(){impGo(true)};$("imno").onclick=function(){impGo(false)};
+  $("imov").addEventListener("keydown",function(e){if(e.key==="Escape")impGo(false)});
   $("hc").addEventListener("click",function(e){var x=e.target.closest&&e.target.closest("[data-cdel]");if(!x)return;e.preventDefault();e.stopPropagation();curCat=x.dataset.cdel;catDelAsk()},true);
   $("catB").addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-nd]");if(b)nmDelAsk(b.dataset.nd)});
   $("cdyes").onclick=function(){catDelGo(true)};
