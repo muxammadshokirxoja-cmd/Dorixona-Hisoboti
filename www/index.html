@@ -1506,10 +1506,16 @@ function startRh(){
   $("pdn").onclick=function(){$("pdov").hidden=true};
   $("pdy").onclick=function(){$("pdov").hidden=true;delPh(pdId)};
   document.addEventListener("submit",function(e){if(e.target.id==="phadd"){e.preventDefault();addPh()}});
-  fdb.collection("ph").onSnapshot(function(s){
-    PHS=s.docs.map(function(d){return {id:d.id,name:d.data().name||d.id}});
-    PHS.forEach(watchPh);renderRh();applyScope();
-  },function(){$("note").textContent="Maʼlumotlarga ulanib boʻlmadi. firestore.rules qoʻyilganini tekshiring.";$("note").hidden=false});
+  (function sub(){
+    fdb.collection("ph").onSnapshot(function(s){
+      $("note").hidden=true;
+      PHS=s.docs.map(function(d){return {id:d.id,name:d.data().name||d.id}});
+      PHS.forEach(watchPh);renderRh();applyScope();
+    },function(x){
+      $("note").textContent="Maʼlumotlarga ulanib boʻlmadi ("+(x&&x.code||"xato")+"). Qayta urinilmoqda...";$("note").hidden=false;
+      setTimeout(sub,10000);
+    });
+  })();
 }
 function boot(){
   dlcap={save:async function(o){
