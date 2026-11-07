@@ -1643,7 +1643,12 @@ function boot(){
     setTimeout(function(){URL.revokeObjectURL(u)},4000);return {status:"saved"};
   }};
   firebase.initializeApp(CFG);auth=firebase.auth();fdb=firebase.firestore();
-  try{fdb.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}
+  var off=document.createElement("div");off.id="offov";off.hidden=true;off.setAttribute("role","alertdialog");
+  off.style.cssText="position:fixed;inset:0;z-index:100;background:rgba(20,23,26,.82);display:grid;place-items:center;padding:16px";
+  off.innerHTML='<div style="background:var(--card);color:var(--tx);border:2px solid var(--bd);border-radius:14px;padding:24px;max-width:380px;text-align:center;display:grid;gap:10px"><b style="font-size:20px">Internet yoʻq</b><span>Dastur faqat internet bilan ishlaydi. Internetga ulaning — ulanishi bilan dastur oʻzi davom etadi.</span></div>';
+  document.body.appendChild(off);
+  function net(){off.hidden=navigator.onLine;if(!navigator.onLine&&document.activeElement)document.activeElement.blur()}
+  window.addEventListener("online",net);window.addEventListener("offline",net);net();
   $("lgf").addEventListener("submit",async function(e){
     e.preventDefault();lgErr("");$("lgb").disabled=true;
     var u=$("lgu").value.trim().toLowerCase();
