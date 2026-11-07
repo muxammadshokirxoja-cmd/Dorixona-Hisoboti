@@ -718,7 +718,7 @@ function chips(){
   });
 }
 function live(){
-  var it=readItems(),jt=it.reduce(function(a,i){return a+i.a},0),np=part({items:it},"NAXD PUL"),rs=part({items:it},RAS);
+  var it=readItems(),jt=it.reduce(function(a,i){return a+i.a},0),np=it.reduce(function(a,i){return a+(catOf(i.n)==="Naxd pul"?i.a:0)},0),rs=it.reduce(function(a,i){return a+(catOf(i.n)==="Rasxod"?i.a:0)},0);
   $("jm").textContent=fmt(jt);
   $("kq").textContent=(np<rs?"−":"")+fmt(Math.abs(np-rs));
   $("kr").textContent=fmt(jt-rs);
@@ -1119,12 +1119,12 @@ function mergeCust(a){custom=BASE.concat(a.filter(function(c){return BASE.indexO
 var catMap={"NAXD TOVAR":"Naxd tovar","NAM EKOMED":"Naxd tovar","TRICHAP":"Naxd tovar","SNIKERS":"Naxd tovar","OYLIK":"Oylik","KLIK":"Klik","JAHONMED BIO":"Jahonmed Bio"},mapDoc=null,curCat="",cm="";
 var CM0=Object.assign({},catMap),hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
 function allCats(){return ORDER.concat(custom.filter(function(c){return BASE.indexOf(c)<0}))}
-function userCats(){return custom.slice()}
+function userCats(){return allCats()}
 function catOf(n){
   var i=FIXK.indexOf(n);if(i>=0)return FIX[i][1];
   if(n===RAS)return "Rasxod";
   var c=catMap[n];
-  return c&&custom.indexOf(c)>=0?c:"Boshqa";
+  return c&&allCats().indexOf(c)>=0?c:"Boshqa";
 }
 function monthCat(m,c){
   return inRange(m+"-01",m+"-31").reduce(function(a,k){return a+days[k].items.reduce(function(x,i){return x+(catOf(i.n)===c?i.a:0)},0)},0);
@@ -1147,7 +1147,7 @@ function renderCat(){
   $("catDel").hidden=!(custom.indexOf(curCat)>=0&&BASE.indexOf(curCat)<0);
   var list=catNames(curCat),can=userCats().indexOf(curCat)>=0;
   $("catB").innerHTML=list.length?'<div class="cnl">'+list.map(function(n,i){
-    var sel=can?'<button type="button" class="g cne" data-ed="'+esc(n)+'">Tahrirlash</button>':'';
+    var sel=can&&FIXK.indexOf(n)<0&&n!==RAS?'<button type="button" class="g cne" data-ed="'+esc(n)+'">Tahrirlash</button>':'';
     sel+='<button type="button" class="g cne cnx" data-nd="'+esc(n)+'" title="Roʻyxatdan oʻchirish" aria-label="'+esc(n)+' ni oʻchirish">✕</button>';
     PAIR["cf"+i]="ct"+i;PAIR["ct"+i]="cf"+i;
     return '<div class="cnr"><span class="cnn">'+esc(n)+'</span><span class="cnd">Boshi:</span>'+dpHtml("cf"+i,"Boshlanish sanasi")+'<span class="cnd">Oxiri:</span>'+dpHtml("ct"+i,"Tugash sanasi")+'<button type="button" class="cng" id="cg'+i+'" data-cg="'+i+'" title="Hisoblash"><span>✓</span><span class="cnv" id="cr'+i+'"></span></button>'+sel+'</div>';
