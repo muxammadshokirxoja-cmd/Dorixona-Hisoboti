@@ -45,6 +45,13 @@ body.rh .ro,body.rh .cne{display:none!important}
 .rhw{display:grid;gap:4px;min-width:0}
 .rhw button.pdl{justify-self:end;padding:3px 8px;font-size:12.5px;color:var(--red);border-color:transparent;background:transparent;font-weight:500}
 .rcp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}
+.rhw .pdb{display:flex;justify-content:flex-end;gap:4px;flex-wrap:wrap}
+.rhw button.prs{color:var(--mut)}
+button.rhp small.rmis{color:var(--red);font-weight:600}
+.rhh{background:var(--card);border:2px solid var(--bd);border-radius:12px;padding:12px 16px}
+.rhh summary{cursor:pointer;font-weight:700}
+.rhh .hr{border-top:1px solid var(--mut);padding:8px 0;margin-top:8px;display:grid;gap:2px;font-size:14px}
+.rhh .hr small{color:var(--mut)}
 .rhc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 button.rhp{background:var(--card);color:var(--tx);border:2px solid var(--bd);border-radius:12px;padding:16px;text-align:left;display:grid;gap:3px;font-weight:400}
 button.rhp:hover{border-color:var(--ac)}
@@ -496,6 +503,15 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
     <div class="bar"><button type="button" class="dlx" id="pdy">Ha, oʻchirish</button><button type="button" class="g" id="pdn">Yoʻq</button></div>
   </div>
 </div>
+<div id="prov" class="ask" hidden>
+  <form class="askd" id="prf" role="dialog" aria-modal="true" aria-labelledby="prq" autocomplete="off">
+    <p id="prq"><b id="prw"></b><br>Yangi login va parol bering</p>
+    <p class="hint">Eski parolni oʻzgartirib boʻlmaydi, shuning uchun dorixonaga yangi login beriladi. Eski login ishlamay qoladi, savdolar oʻchmaydi. Login avvalgisidan farq qilsin, masalan oxiriga 2 qoʻshing.</p>
+    <input id="prl" placeholder="Yangi login (lotin harflarda)" autocapitalize="none" required>
+    <input id="prp" placeholder="Yangi parol (kamida 6 belgi)" required>
+    <div class="bar"><button id="pry">Saqlash</button><button type="button" class="g" id="prn">Bekor qilish</button></div>
+  </form>
+</div>
 <div id="rdov" class="ask" hidden>
   <div class="askd" role="alertdialog" aria-modal="true" aria-labelledby="rdq">
     <p id="rdq"><b id="rdw"></b><br>Bu qator oʻchirilsinmi?</p>
@@ -532,7 +548,15 @@ function $(id){return document.getElementById(id)}
 function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function fmt(n){return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,".")}
 function digits(s){return String(s||"").replace(/\D/g,"")}
-function num(s){return parseInt(digits(s),10)||0}
+function num(s){
+  s=String(s||"");
+  if(!/[+\-]/.test(s))return parseInt(digits(s),10)||0;
+  var t=0,m,re=/([+\-]?)\s*([\d.\s]*)/g;
+  while((m=re.exec(s))&&m[0]!==""){var v=parseInt(digits(m[2]),10)||0;t+=m[1]==="-"?-v:v}
+  return Math.max(0,t);
+}
+function isExpr(s){return /\d[\d.\s]*[+\-]/.test(String(s||""))}
+function calcAmt(el){if(isExpr(el.value)){var v=num(el.value);el.value=v?fmt(v):"";live();if(!v)say("Hisob natijasi 0 yoki manfiy chiqdi, summani qayta yozing.",true)}}
 function pad(n){return String(n).padStart(2,"0")}
 function iso(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
 function pd(s){var a=s.split("-");return new Date(+a[0],+a[1]-1,+(a[2]||1))}
@@ -566,7 +590,7 @@ async function copy(t,done){
 /* — Kiritish — */
 function addRow(n,a,focus,iz){
   var r=document.createElement("div");r.className="orow";
-  r.innerHTML='<input class="amt" inputmode="numeric" placeholder="0" aria-label="Summa"><input class="nm" list="nl" placeholder="Sababi" aria-label="Sababi"><input class="iz" placeholder="Izoh" aria-label="Izoh"><div class="act"><button type="button" class="dl" aria-label="Qatorni oʻchirish">×</button></div>';
+  r.innerHTML='<input class="amt" inputmode="text" placeholder="0" aria-label="Summa"><input class="nm" list="nl" placeholder="Sababi" aria-label="Sababi"><input class="iz" placeholder="Izoh" aria-label="Izoh"><div class="act"><button type="button" class="dl" aria-label="Qatorni oʻchirish">×</button></div>';
   r.children[0].value=a?fmt(a):"";r.children[1].value=n||"";r.children[2].value=iz||"";
   r.querySelector(".dl").onclick=function(){
     var a=r.children[0].value,n=r.children[1].value.trim();
@@ -776,6 +800,13 @@ function go(date){
 }
 function open(date){if(ROLE==="rh")return;setTab("enter");go(date)}
 function fmtInput(el){
+  if(/[+\-]/.test(el.value)){
+    var raw=el.value.replace(/[^\d+\-]/g,"").replace(/([+\-])[+\-]+/g,"$1").replace(/^[+\-]+/,"");
+    var at=el.selectionStart===el.value.length;
+    el.value=raw.split(/([+\-])/).map(function(x){return /^[+\-]$/.test(x)?" "+x+" ":x?fmt(+x.replace(/^0+(?=\d)/,"")):""}).join("");
+    if(at)try{el.setSelectionRange(el.value.length,el.value.length)}catch(e){}
+    return;
+  }
   var pos=el.selectionStart,before=digits(el.value.slice(0,pos)).length,d=digits(el.value).replace(/^0+/,""),v=d?fmt(+d):"";
   el.value=v;
   var i=0,c=0;while(i<v.length&&c<before){if(/\d/.test(v[i]))c++;i++}
@@ -1241,10 +1272,12 @@ function bind(){
     if(locked)return;
     var t=e.target,r=t.closest(".orow"),nx=r&&r.nextElementSibling;
     if(!r)return;
+    if(t.classList.contains("amt"))calcAmt(t);
     if(t.classList.contains("amt")&&!num(t.value)&&!nx){$("sv").focus();return}
     if(t.classList.contains("amt")&&!r.children[1].value.trim()){r.children[1].focus();return}
     if(nx)nx.children[0].focus();else nextRow();
   });
+  $("fm").addEventListener("focusout",function(e){if(e.target.classList&&e.target.classList.contains("amt"))calcAmt(e.target)});
   $("fm").addEventListener("focusin",function(e){if(e.target.classList.contains("amt")||e.target.classList.contains("nm"))e.target.select()});
   $("fm").addEventListener("click",function(e){if(e.target.classList.contains("nm"))e.target.select()});
   $("fm").addEventListener("focusout",function(e){if(e.target.classList.contains("nm")){e.target.value=norm(e.target.value);chips()}});
@@ -1462,13 +1495,88 @@ async function delPh(id){
     say("Dorixona oʻchirildi. Bu login qayta ishlatilmaydi, yangi login bering.");
   }catch(e){say("Oʻchmadi. Firebase Rules yangilanganini tekshiring.",true)}
 }
+function phMiss(id,t){
+  var d=allDays[id]||{},y=shift(t,-1),f=Object.keys(d).sort()[0],n=0,s="";
+  for(var i=1;i<=7;i++){var k=shift(t,-i);if(f&&k>=f&&!d[k])n++}
+  if(!d[t])s+='<small class="rmis">Bugun hali yozilmagan</small>';
+  if(f&&y>=f&&!d[y])s+='<small class="rmis">Kecha yozilmagan!</small>';
+  if(n)s+='<small class="rmis">Oxirgi 7 kunda yozilmagan: '+n+' kun</small>';
+  return s;
+}
+function hk(t){var m=/^(\d\d)\.(\d\d)\.(\d{4}) (\d\d:\d\d)/.exec(t||"");return m?m[3]+"-"+m[2]+"-"+m[1]+" "+m[4]:""}
+function rhHist(){
+  var r=[];
+  PHS.forEach(function(p){var d=allDays[p.id]||{};Object.keys(d).forEach(function(k){(d[k].hist||[]).forEach(function(h){var x=hk(h.t);if(x&&x.slice(0,10)>k)r.push({p:p.name,k:k,t:h.t,x:x,d:h.d||[]})})})});
+  if(!r.length)return '<details class="rhh"><summary>Oʻtgan kunlarga kiritilgan oʻzgarishlar: yoʻq</summary></details>';
+  r.sort(function(a,b){return a.x<b.x?1:-1});
+  return '<details class="rhh"'+(r[0].x.slice(0,10)>=shift(today(),-3)?' open':'')+'><summary>Oʻtgan kunlarga kiritilgan oʻzgarishlar: '+r.length+' ta</summary>'
+    +r.slice(0,30).map(function(e){return '<div class="hr"><b>'+esc(e.p)+' — '+dmy(e.k)+' kuni</b><small>Oʻzgartirilgan vaqti: '+esc(e.t)+'</small>'+e.d.map(function(x){return '<span>'+esc(x)+'</span>'}).join("")+'</div>'}).join("")
+    +(r.length>30?'<small>Faqat oxirgi 30 tasi koʻrsatildi.</small>':'')+'</details>';
+}
+var prId="";
+async function resetPh(){
+  var id=prId,l=$("prl").value.trim().toLowerCase(),pw=$("prp").value,ph=PHS.filter(function(p){return p.id===id})[0];
+  if(!ph)return;
+  if(!/^[a-z0-9._-]{3,30}$/.test(l)||l==="rahbar"){say("Login faqat lotin harf va raqamdan, kamida 3 belgi boʻlsin.",true);return}
+  if(pw.length<6){say("Parol kamida 6 belgi boʻlsin.",true);return}
+  $("pry").disabled=true;
+  var sec=firebase.apps.filter(function(a){return a.name==="sec"})[0]||firebase.initializeApp(CFG,"sec");
+  try{
+    var c=await sec.auth().createUserWithEmailAndPassword(l+DOM,pw);
+    await fdb.doc("users/"+c.user.uid).set({ph:id,name:ph.name});
+    var us=await fdb.collection("users").where("ph","==",id).get();
+    for(var j=0;j<us.docs.length;j++)if(us.docs[j].id!==c.user.uid)await us.docs[j].ref.delete();
+    await fdb.doc("ph/"+id).set({name:ph.name,login:l},{merge:true});
+    await sec.auth().signOut();
+    $("prov").hidden=true;say("Yangi login berildi: "+l+". Eski login endi ishlamaydi.");
+  }catch(e){say(authMsg(e),true)}
+  $("pry").disabled=false;
+}
 function phTotal(id,day){var d=(allDays[id]||{})[day];return d?sum(d):0}
 function renderRh(){
   var t=today(),e=$("rhl"),all=PHS.reduce(function(a,p){return a+phTotal(p.id,t)},0);
   var ae=document.activeElement,keep=ae&&ae.closest&&ae.closest("#phadd");
   if(!keep)e.innerHTML='<div class="rhc"><button type="button" class="rhp all" data-sc="all"><b>Umumiy</b><small>Bugun: '+fmt(all)+' soʻm</small></button>'
-    +PHS.map(function(p){return '<div class="rhw"><button type="button" class="rhp" data-sc="'+esc(p.id)+'"><b>'+esc(p.name)+'</b><small>Bugun: '+fmt(phTotal(p.id,t))+' soʻm</small><small>'+UZM[+t.slice(5,7)-1]+': '+fmt(phMonth(p.id,t.slice(0,7)))+' soʻm</small><small>Login: '+esc(p.id)+'</small></button><button type="button" class="pdl" data-pd="'+esc(p.id)+'">Oʻchirish</button></div>'}).join("")
-    +'</div><form class="rha" id="phadd" autocomplete="off"><h2>+ Dorixona qoʻshish</h2><div class="bar"><input id="pn" placeholder="Dorixona nomi" required><input id="pl" placeholder="Login (lotin harflarda)" autocapitalize="none" required><input id="pp" placeholder="Parol (kamida 6 belgi)" required><button>Qoʻshish</button></div></form>';
+    +PHS.map(function(p){return '<div class="rhw"><button type="button" class="rhp" data-sc="'+esc(p.id)+'"><b>'+esc(p.name)+'</b><small>Bugun: '+fmt(phTotal(p.id,t))+' soʻm</small><small>'+UZM[+t.slice(5,7)-1]+': '+fmt(phMonth(p.id,t.slice(0,7)))+' soʻm</small>'+phMiss(p.id,t)+'<small>Login: '+esc(p.login||p.id)+'</small></button><div class="pdb"><button type="button" class="pdl prs" data-pr="'+esc(p.id)+'">Parolni tiklash</button><button type="button" class="pdl" data-pd="'+esc(p.id)+'">Oʻchirish</button></div></div>'}).join("")
+    +'</div>'+rhHist()+'<div class="rha"><h2>Zaxira nusxa</h2><p class="hint">Hamma dorixonalarning hamma kunlari bitta Excel faylga yoziladi. Haftasiga bir marta oling.</p><div class="bar"><button type="button" id="bkp">Zaxira olish (Excel)</button><span id="bkl">'+bkLast()+'</span></div></div>'
+    +'<form class="rha" id="phadd" autocomplete="off"><h2>+ Dorixona qoʻshish</h2><div class="bar"><input id="pn" placeholder="Dorixona nomi" required><input id="pl" placeholder="Login (lotin harflarda)" autocapitalize="none" required><input id="pp" placeholder="Parol (kamida 6 belgi)" required><button>Qoʻshish</button></div></form>';
+}
+function bkLast(){
+  var d="";try{d=localStorage.getItem("dh-bkp")||""}catch(e){}
+  if(!d)return '<b style="color:var(--red)">Hali zaxira olinmagan</b>';
+  var n=Math.round((new Date(today())-new Date(d))/864e5);
+  return n>7?'<b style="color:var(--red)">Oxirgi zaxira: '+dmy(d)+' ('+n+' kun oldin)</b>':'Oxirgi zaxira: '+dmy(d);
+}
+function sheetName(n,used){
+  var s=String(n).replace(/[^0-9A-Za-z\u0400-\u04FF\u02BB\u02BC' .,_()-]/g," ").slice(0,28).trim()||"Dorixona",k=s,i=2;
+  while(used[k.toLowerCase()])k=s+" "+(i++);used[k.toLowerCase()]=1;return k;
+}
+async function bkp(){
+  if(typeof XLSX==="undefined"){say("Excel kutubxonasi yuklanmadi. Internetni tekshiring.",true);return}
+  if(!PHS.length){say("Dorixona yoʻq.",true);return}
+  var wb=XLSX.utils.book_new(),used={"umumiy":1},all={},cnt=0,sh=[];
+  PHS.forEach(function(p){
+    var dd=allDays[p.id]||{},m=Object.assign({},CM0,(allMap[p.id]||{}).m||{}),rows=[["Sana","Summa","Sababi","Kategoriya","Izoh"]];
+    Object.keys(dd).sort().forEach(function(k){
+      var t=0;
+      dd[k].items.forEach(function(i){t+=i.a;var fi=FIXK.indexOf(i.n);rows.push([dmy(k),i.a,i.n,fi>=0?FIX[fi][1]:i.n===RAS?"Rasxod":m[i.n]||"",i.iz||""]);cnt++});
+      all[k]=all[k]||{};all[k][p.id]=t;
+    });
+    var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=[{wch:12},{wch:14},{wch:28},{wch:16},{wch:24}];
+    sh.push([sheetName(p.name,used),ws]);
+  });
+  var hd=["Sana"].concat(PHS.map(function(p){return p.name}),["JAMI"]);
+  var ur=Object.keys(all).sort().map(function(k){var v=PHS.map(function(p){return all[k][p.id]||0});return [dmy(k)].concat(v,[v.reduce(function(a,b){return a+b},0)])});
+  var u=XLSX.utils.aoa_to_sheet([hd].concat(ur));u["!cols"]=hd.map(function(){return {wch:16}});
+  XLSX.utils.book_append_sheet(wb,u,"Umumiy");
+  sh.forEach(function(x){XLSX.utils.book_append_sheet(wb,x[1],x[0])});
+  var buf=XLSX.write(wb,{type:"array",bookType:"xlsx"});
+  try{
+    await dlcap.save({filename:"Dorixona-zaxira-"+today()+".xlsx",data:buf});
+    try{localStorage.setItem("dh-bkp",today())}catch(e){}
+    var l=$("bkl");if(l)l.innerHTML=bkLast();
+    say("Zaxira saqlandi: "+cnt+" ta yozuv");
+  }catch(e){say("Zaxira saqlanmadi.",true)}
 }
 async function addPh(){
   var n=$("pn").value.trim(),l=$("pl").value.trim().toLowerCase(),p=$("pp").value;
@@ -1486,7 +1594,7 @@ async function addPh(){
 function watchPh(p){
   if(subs[p.id])return;subs[p.id]=1;
   fdb.collection("ph/"+p.id+"/days").onSnapshot(function(s){
-    var o={};s.docs.forEach(function(d){var b=d.data();if(b&&Array.isArray(b.items))o[d.id]={date:d.id,items:b.items}});
+    var o={};s.docs.forEach(function(d){var b=d.data();if(b&&Array.isArray(b.items))o[d.id]={date:d.id,items:b.items,hist:b.hist||[]}});
     allDays[p.id]=o;renderRh();applyScope();
   },function(){});
   fdb.doc("ph/"+p.id+"/settings/map").onSnapshot(function(d){
@@ -1500,16 +1608,22 @@ function startRh(){
   $("rhl").hidden=false;renderRh();
   document.addEventListener("click",function(e){
     var b=e.target.closest&&e.target.closest("[data-sc]");if(b)setScope(b.dataset.sc);
+    if(e.target.id==="bkp")bkp();
+    var pr=e.target.closest&&e.target.closest("[data-pr]");
+    if(pr){prId=pr.dataset.pr;$("prw").textContent=(PHS.filter(function(p){return p.id===prId})[0]||{}).name||prId;$("prl").value="";$("prp").value="";$("prov").hidden=false;$("prl").focus()}
     var d=e.target.closest&&e.target.closest("[data-pd]");
     if(d){pdId=d.dataset.pd;$("pdw").textContent=(PHS.filter(function(p){return p.id===pdId})[0]||{}).name||pdId;$("pdov").hidden=false;$("pdn").focus()}
   });
   $("pdn").onclick=function(){$("pdov").hidden=true};
+  $("prn").onclick=function(){$("prov").hidden=true};
+  $("prf").addEventListener("submit",function(e){e.preventDefault();resetPh()});
+  $("prov").addEventListener("keydown",function(e){if(e.key==="Escape")$("prov").hidden=true});
   $("pdy").onclick=function(){$("pdov").hidden=true;delPh(pdId)};
   document.addEventListener("submit",function(e){if(e.target.id==="phadd"){e.preventDefault();addPh()}});
   (function sub(){
     fdb.collection("ph").onSnapshot(function(s){
       $("note").hidden=true;
-      PHS=s.docs.map(function(d){return {id:d.id,name:d.data().name||d.id}});
+      PHS=s.docs.map(function(d){return {id:d.id,name:d.data().name||d.id,login:d.data().login||""}});
       PHS.forEach(watchPh);renderRh();applyScope();
     },function(x){
       $("note").textContent="Maʼlumotlarga ulanib boʻlmadi ("+(x&&x.code||"xato")+"). Qayta urinilmoqda...";$("note").hidden=false;
@@ -1518,6 +1632,11 @@ function startRh(){
   })();
 }
 function boot(){
+  if(/sinov\.html$/i.test(location.pathname)){
+    var sb=document.createElement("div");sb.textContent="SINOV NUSXA — bu yerda faqat sinab koʻring";
+    sb.style.cssText="position:sticky;top:0;z-index:50;background:#e0a100;color:#1b1f24;font-weight:700;text-align:center;padding:6px 12px";
+    document.body.prepend(sb);document.title="SINOV — Dorixona Hisoboti";
+  }
   dlcap={save:async function(o){
     var u=URL.createObjectURL(new Blob([o.data])),a=document.createElement("a");
     a.href=u;a.download=o.filename;document.body.appendChild(a);a.click();a.remove();
