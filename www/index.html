@@ -30,6 +30,17 @@ button.ht.hn{display:flex;align-items:center;gap:14px;padding:18px;min-height:96
 .hb.x{background:var(--ac);color:var(--ac-tx)}
 .hb.r{background:var(--red);color:var(--card)}
 .hb.c{background:var(--yel);color:var(--yel-tx)}
+.hb.oy{background:var(--tx);color:var(--card)}
+.oyms{display:flex;flex-wrap:wrap;gap:4px}
+.oyms button{padding:5px 10px;font-size:13.5px;font-weight:600;background:var(--card);color:var(--tx);border:1.5px solid var(--line,#ccd);border-radius:7px}
+.oyms button.on{background:var(--ac);border-color:var(--ac);color:var(--ac-tx)}
+#oytab table{border-collapse:collapse;font-size:15px}
+#oytab th,#oytab td{border:1.5px solid var(--bd);padding:5px 10px;text-align:right;white-space:nowrap}
+#oytab th{text-align:center;font-weight:700}
+#oytab td:first-child{font-weight:700;text-align:left}
+#oytab tr.t td{font-weight:800;background:var(--yel);color:var(--yel-tx)}
+#oytab tbody tr{cursor:pointer}
+#oytab tbody tr:hover td{background:var(--bg)}
 button.ht{background:var(--card);color:var(--tx);border-color:var(--bd);border-radius:12px;padding:18px 16px;text-align:left;display:grid;gap:4px;align-content:start;font-weight:400;min-width:0}
 button.ht:hover{border-color:var(--ac)}
 button.ht b{font-size:18px}
@@ -338,9 +349,20 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
     <button class="ht hn" data-tab="imp"><span class="hb hw">W</span><span class="ht2"><b>Kunlik savdo Word</b><small>Har kunlik yozuvlar Word shaklida</small></span></button>
     <button class="ht hn" data-tab="xl"><span class="hb x">X</span><span class="ht2"><b>Kunlik savdo Excel</b><small>Kategoriyalar boʻyicha jadval</small></span></button>
     <button class="ht hn" data-tab="rep"><span class="hb r"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="16" y="3" width="4" height="18" rx="1"/></svg></span><span class="ht2"><b>Hisobot</b><small id="h3"></small></span></button>
+    <button class="ht hn" data-tab="oy"><span class="hb oy"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></svg></span><span class="ht2"><b>Oylik</b><small>Xodimlarga berilgan oyliklar jadvali</small></span></button>
     <button class="ht hn" data-tab="cats"><span class="hb c"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span><span class="ht2"><b>Kategoriyalar</b><small>Naxd pul, Naxd tovar va boshqalar</small></span></button>
   </section>
 
+  <section id="v-oy" hidden style="display:grid;gap:14px">
+    <div class="bar"><button class="g" data-tab="home">← Kunlik savdo</button><h2 class="vt">Oylik</h2></div>
+    <div class="bar">
+      <button type="button" class="g" id="oyp" aria-label="Oldingi yil">‹</button><b id="oyy" style="min-width:48px;text-align:center"></b><button type="button" class="g" id="oyn" aria-label="Keyingi yil">›</button>
+      <div class="oyms" id="oyms"></div>
+      <button type="button" id="oyx" style="margin-left:auto">Excelga yuklash</button>
+    </div>
+    <p class="hint" style="margin:0">“Oylik” kategoriyasidagi nomlar shu yerda ustun boʻlib chiqadi. Kunlik savdoda masalan <b>50.000 – NURIDDIN</b> deb yozsangiz va NURIDDIN “Oylik” kategoriyasida boʻlsa, shu jadvalga tushadi.</p>
+    <div class="box"><div class="sc" id="oytab"></div></div>
+  </section>
   <section id="v-cats" hidden style="display:grid;gap:14px">
     <div class="bar"><button class="g" data-tab="home">← Kunlik savdo</button><h2 class="vt">Kategoriyalar</h2></div>
     <form class="bar ro" id="cadd" autocomplete="off">
@@ -943,6 +965,44 @@ function renderXl(){
   var j=$("xj");j.hidden=!ks.length;j.innerHTML="<span>JAMI:</span><b>"+fmt(TJ)+"</b>";
 }
 
+/* — Oylik — */
+var oyM=today().slice(0,7);
+function tcase(n){return n.toLowerCase().replace(/(^|[\s(])(\S)/g,function(a,b,c){return b+c.toUpperCase()})}
+function oyData(){
+  var y=+oyM.slice(0,4),m=+oyM.slice(5,7),last=new Date(y,m,0).getDate(),ks=[],names=[],cell={};
+  for(var d=1;d<=last;d++)ks.push(oyM+"-"+("0"+d).slice(-2));
+  ks.forEach(function(k){(days[k]?days[k].items:[]).forEach(function(i){if(catOf(i.n)!=="Oylik")return;if(names.indexOf(i.n)<0)names.push(i.n);cell[k+"|"+i.n]=(cell[k+"|"+i.n]||0)+i.a})});
+  var T=names.map(function(n){return ks.reduce(function(a,k){return a+(cell[k+"|"+n]||0)},0)});
+  return {ks:ks,names:names,cell:cell,T:T};
+}
+function renderOy(){
+  $("oyy").textContent=oyM.slice(0,4);
+  $("oyms").innerHTML=UZM.map(function(n,i){var v=oyM.slice(0,5)+("0"+(i+1)).slice(-2);return '<button type="button" data-oym="'+v+'"'+(v===oyM?' class="on" aria-pressed="true"':'')+'>'+n+'</button>'}).join("");
+  var D=oyData();
+  if(!D.names.length){$("oytab").innerHTML='<p class="hint" style="padding:16px;margin:0">'+UZM[+oyM.slice(5,7)-1]+' oyida oylik yozilmagan.</p>';return}
+  var all=D.T.reduce(function(a,b){return a+b},0);
+  $("oytab").innerHTML='<table><thead><tr><th colspan="'+(D.names.length+1)+'">OYLIK — '+UZM[+oyM.slice(5,7)-1]+' '+oyM.slice(0,4)+'</th></tr><tr><th>Sana</th>'+D.names.map(function(n){return '<th>'+esc(tcase(n))+'</th>'}).join("")+'</tr></thead><tbody>'
+    +D.ks.map(function(k){return '<tr data-open="'+k+'"><td>'+dmy(k)+'</td>'+D.names.map(function(n){var v=D.cell[k+"|"+n];return '<td>'+(v?fmt(v):"")+'</td>'}).join("")+'</tr>'}).join("")
+    +'</tbody><tfoot><tr class="t"><td>JAMI</td>'+D.T.map(function(v){return '<td>'+fmt(v)+'</td>'}).join("")+'</tr>'
+    +(D.names.length>1?'<tr class="t"><td>Hammasi</td><td colspan="'+D.names.length+'">'+fmt(all)+'</td></tr>':'')+'</tfoot></table>';
+}
+async function oyExcel(){
+  if(typeof XLSX==="undefined")return say("Excel kutubxonasi yuklanmadi. Internetni tekshiring.",true);
+  var D=oyData();if(!D.names.length)return say("Bu oyda oylik yoʻq.",true);
+  var mn=UZM[+oyM.slice(5,7)-1];
+  var rows=[["OYLIK — "+mn+" "+oyM.slice(0,4)],["Sana"].concat(D.names.map(tcase))]
+    .concat(D.ks.map(function(k){return [dmy(k)].concat(D.names.map(function(n){return D.cell[k+"|"+n]||null}))}),[["JAMI"].concat(D.T)]);
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!merges"]=[{s:{r:0,c:0},e:{r:0,c:D.names.length}}];
+  ws["!cols"]=[{wch:12}].concat(D.names.map(function(n){return {wch:Math.max(12,n.length+2)}}));
+  Object.keys(ws).forEach(function(c){if(c[0]!=="!"&&ws[c].t==="n")ws[c].z="#,##0"});
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,mn);
+  var buf=XLSX.write(wb,{type:"array",bookType:"xlsx"});
+  if(!dlcap)return say("Bu oynada faylni saqlab boʻlmaydi.",true);
+  try{await dlcap.save({filename:"Oylik-"+mn+"-"+oyM.slice(0,4)+".xlsx",data:buf});say("Excel fayl saqlandi")}
+  catch(e){if(e&&e.code!=="declined")say("Fayl saqlanmadi: qayta urinib koʻring.",true)}
+}
+
 /* — Kunlik savdo Word — */
 var wF="",wT="",xF="",xT="",cF="",cT="",rF="",rT="";
 function wKeys(){
@@ -1318,7 +1378,8 @@ function setTab(t){
   if(dirty&&tab==="enter"&&t!=="enter"){guard(function(){setTab(t)});return}
   tab=t;
   if(t==="main"&&ROLE==="rh"){scope="";head="Rahbar";showHead()}
-  ["main","home","cats","cat","enter","rep","imp","xl"].forEach(function(k){$("v-"+k).hidden=k!==t});
+  ["main","home","cats","cat","enter","rep","imp","xl","oy"].forEach(function(k){$("v-"+k).hidden=k!==t});
+  if(t==="oy")renderOy();
   if(t==="imp")renderWord();
   if(t==="cat")renderCat();
   if(t==="xl")renderXl();
@@ -1332,6 +1393,7 @@ function refresh(){
   if(tab==="rep")renderRep();
   if(tab==="imp")renderWord();
   if(tab==="cat")renderCat();
+  if(tab==="oy")renderOy();
   if(tab==="xl")renderXl();
   renderHome();
 }
@@ -1385,6 +1447,10 @@ function bind(){
     var r=e.target.closest(".orow");setTimeout(function(){askNew(r)},0);
   });
   $("catDel").onclick=catDelAsk;
+  $("oyms").addEventListener("click",function(e){var b=e.target.closest("[data-oym]");if(b){oyM=b.dataset.oym;renderOy()}});
+  $("oyp").onclick=function(){oyM=(+oyM.slice(0,4)-1)+oyM.slice(4);renderOy()};
+  $("oyn").onclick=function(){oyM=(+oyM.slice(0,4)+1)+oyM.slice(4);renderOy()};
+  $("oyx").onclick=oyExcel;
   $("chtg").onclick=function(){var c=$("chips"),o=c.hidden;c.hidden=!o;this.setAttribute("aria-expanded",o);this.textContent=o?"Nomlar roʻyxatini yopish ▴":"Nomlar roʻyxati ▾"};
   $("wimp").onclick=function(){$("wimf").value="";$("wimf").click()};
   $("wimf").addEventListener("change",function(){impFile(this.files[0])});
