@@ -41,9 +41,12 @@ button.ht.hn{display:flex;align-items:center;gap:14px;padding:18px;min-height:96
 #oytab td:first-child{font-weight:700;text-align:left}
 #oytab tr.t td{font-weight:800;background:var(--yel);color:var(--yel-tx)}
 #oytab td.oyd{cursor:pointer}
+.oydx{margin-left:6px;padding:0 5px;border:0;background:none;color:var(--red);font-weight:700;font-size:13px;border-radius:4px;cursor:pointer}
+.oydx:hover{background:var(--red);color:var(--card)}
 #oytab td.oyd:hover{text-decoration:underline}
 #oytab td.oyc{cursor:text}
 #oytab td.oyc:hover{background:var(--bg)}
+#oytab td.oyc:focus{outline:3px solid var(--ac);outline-offset:-3px}
 #oytab td.oyc input{width:100%;min-width:110px;border:0;outline:2px solid var(--ac);border-radius:3px;padding:2px 4px;text-align:right;font:inherit;background:var(--card);color:var(--tx)}
 body.rh #oytab td.oyc{cursor:default}
 .oyadd{display:flex;gap:8px;flex-wrap:wrap}
@@ -377,7 +380,7 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
       <button id="oygo">Natijani yuklash</button>
     </div>
     <form class="oyadd ro" id="oyaf" autocomplete="off"><input id="oyan" placeholder="Yangi xodim ismi" aria-label="Yangi xodim ismi" style="width:240px;max-width:100%"><button>+ Xodim qoʻshish</button></form>
-    <p class="hint" style="margin:0">Jadvaldagi istalgan katakni bosib summa yozing yoki oʻzgartiring, Enter bilan saqlanadi. “Oylik” kategoriyasidagi nomlar shu yerda ustun boʻlib chiqadi. Kunlik savdoda masalan <b>50.000 – NURIDDIN</b> deb yozsangiz va NURIDDIN “Oylik” kategoriyasida boʻlsa, shu jadvalga tushadi.</p>
+    <p class="hint" style="margin:0">Katakni bosib summa yozing yoki oʻzgartiring. Enter — saqlab pastga oʻtadi, Tab — oʻngga, strelkalar — katakdan katakka, Delete — oʻchiradi. “Oylik” kategoriyasidagi nomlar shu yerda ustun boʻlib chiqadi. Kunlik savdoda masalan <b>50.000 – NURIDDIN</b> deb yozsangiz va NURIDDIN “Oylik” kategoriyasida boʻlsa, shu jadvalga tushadi.</p>
     <div class="box"><div class="sc" id="oytab"></div></div>
   </section>
   <section id="v-cats" hidden style="display:grid;gap:14px">
@@ -997,31 +1000,53 @@ function oyData(){
   return {ks:ks,names:names,cell:cell,T:T};
 }
 function oyTitle(D){return oyF||oyT?(D.ks.length?dmy(D.ks[0])+" – "+dmy(D.ks[D.ks.length-1]):""):UZM[+oyM.slice(5,7)-1]+" "+oyM.slice(0,4)}
-function renderOy(){
+function renderOy(force){
+  var ae=document.activeElement,ed=ae&&ae.tagName==="INPUT"&&$("oytab").contains(ae);
+  if(ed&&!force)return;
+  var fk=ae&&ae.classList&&ae.classList.contains("oyc")?[ae.dataset.k,ae.dataset.n]:null;
+  oyBuild();
+  if(fk){var t=[].filter.call(document.querySelectorAll("#oytab td.oyc"),function(x){return x.dataset.k===fk[0]&&x.dataset.n===fk[1]})[0];if(t)t.focus()}
+}
+function oyBuild(){
   $("oyy").textContent=oyM.slice(0,4);
   var rg=oyF||oyT;
   $("oyms").innerHTML=UZM.map(function(n,i){var v=oyM.slice(0,5)+("0"+(i+1)).slice(-2);return '<button type="button" data-oym="'+v+'"'+(!rg&&v===oyM?' class="on" aria-pressed="true"':'')+'>'+n+'</button>'}).join("");
   var D=oyData(),ttl=oyTitle(D);
   if(!D.names.length){$("oytab").innerHTML='<p class="hint" style="padding:16px;margin:0">'+(rg?ttl+' davrida':UZM[+oyM.slice(5,7)-1]+' oyida')+' oylik yozilmagan.</p>';return}
   var all=D.T.reduce(function(a,b){return a+b},0);
-  $("oytab").innerHTML='<table><thead><tr><th colspan="'+(D.names.length+1)+'">OYLIK — '+ttl+'</th></tr><tr><th>Sana</th>'+D.names.map(function(n){return '<th>'+esc(tcase(n))+'</th>'}).join("")+'</tr></thead><tbody>'
+  $("oytab").innerHTML='<table><thead><tr><th colspan="'+(D.names.length+1)+'">OYLIK — '+ttl+'</th></tr><tr><th>Sana</th>'+D.names.map(function(n){return '<th>'+esc(tcase(n))+'<button type="button" class="oydx ro" data-oydel="'+esc(n)+'" title="Xodimni oʻchirish" aria-label="'+esc(tcase(n))+' ni oʻchirish">✕</button></th>'}).join("")+'</tr></thead><tbody>'
     +D.ks.map(function(k){return '<tr><td class="oyd" data-open="'+k+'" title="Shu kunni ochish">'+dmy(k)+'</td>'+D.names.map(function(n){var v=D.cell[k+"|"+n];return '<td class="oyc" data-k="'+k+'" data-n="'+esc(n)+'" tabindex="0" title="Bosing: yozish yoki tahrirlash">'+(v?fmt(v):"")+'</td>'}).join("")+'</tr>'}).join("")
     +'</tbody><tfoot><tr class="t"><td>JAMI</td>'+D.T.map(function(v){return '<td>'+fmt(v)+'</td>'}).join("")+'</tr>'
     +(D.names.length>1?'<tr class="t"><td>Hammasi</td><td colspan="'+D.names.length+'">'+fmt(all)+'</td></tr>':'')+'</tfoot></table>';
 }
-function oyEdit(td){
+function oyPos(td){var tr=td.parentNode,rs=[].slice.call(tr.parentNode.children),cs=[].slice.call(tr.querySelectorAll("td.oyc"));return [rs.indexOf(tr),cs.indexOf(td)]}
+function oyCell(r,c){
+  var rs=document.querySelectorAll("#oytab tbody tr");if(!rs.length)return null;
+  r=Math.max(0,Math.min(rs.length-1,r));var cs=rs[r].querySelectorAll("td.oyc");if(!cs.length)return null;
+  return cs[Math.max(0,Math.min(cs.length-1,c))];
+}
+function oyFocus(r,c){var t=oyCell(r,c);if(t){t.focus();t.scrollIntoView({block:"nearest",inline:"nearest"})}}
+var OYMV={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
+function oyEdit(td,first){
   if(ROLE_RO()||td.querySelector("input"))return;
+  var P=oyPos(td);
   var k=td.dataset.k,n=td.dataset.n,cur0=(days[k]?days[k].items:[]).filter(function(i){return i.n===n}).reduce(function(a,i){return a+i.a},0);
-  var i=document.createElement("input");i.className="amt";i.inputMode="text";i.value=cur0?fmt(cur0):"";td.textContent="";td.appendChild(i);i.focus();i.select();
+  var i=document.createElement("input");i.className="amt";i.inputMode="text";i.value=first!=null?first:(cur0?fmt(cur0):"");td.textContent="";td.appendChild(i);i.focus();
+  if(first==null)i.select();else{fmtInput(i);i.setSelectionRange(i.value.length,i.value.length)}
   var done=false;
-  function fin(save){
+  function fin(save,dr,dc){
     if(done)return;done=true;
-    if(!save){renderOy();return}
-    var v=num(i.value);if(v===cur0){renderOy();return}
-    oySet(k,n,v);
+    var v=num(i.value);
+    if(save&&v!==cur0)oySet(k,n,v);else renderOy(true);
+    if(dr!=null)oyFocus(P[0]+dr,P[1]+dc);
   }
   i.addEventListener("input",function(){fmtInput(i)});
-  i.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();fin(true)}if(e.key==="Escape"){e.preventDefault();fin(false)}});
+  i.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){e.preventDefault();fin(true,1,0)}
+    else if(e.key==="Tab"){e.preventDefault();fin(true,0,e.shiftKey?-1:1)}
+    else if(e.key==="Escape"){e.preventDefault();fin(false,0,0)}
+    else if(e.key==="ArrowUp"||e.key==="ArrowDown"){e.preventDefault();fin(true,OYMV[e.key][0],0)}
+  });
   i.addEventListener("blur",function(){fin(true)});
 }
 function ROLE_RO(){return document.body.classList.contains("rh")}
@@ -1035,7 +1060,7 @@ function oySet(k,n,v){
     if(df.length){var now=new Date();hist.push({t:dmy(iso(now))+" "+pad(now.getHours())+":"+pad(now.getMinutes()),d:df});hist=hist.slice(-50)}
     days[k]={date:k,items:its,at:Date.now(),hist:hist};
   }
-  persist();write(k);renderHome();renderOy();
+  persist();write(k);renderHome();renderOy(true);
   if(k===cur&&tab!=="enter")fillForm();
   say(dmy(k)+": "+tcase(n)+(v?" — "+fmt(v)+" soʻm saqlandi":" oʻchirildi"));
 }
@@ -1303,6 +1328,13 @@ function renderCat(){
     catCalc(n,i);
   });
 }
+function oyDelAsk(n){
+  var k=Object.keys(days).filter(function(d){return days[d].items.some(function(i){return i.n===n})}).length;
+  cdMode="oy";cdName=n;
+  $("cdw").textContent=tcase(n);$("cdq").lastChild.textContent="Bu xodim Oylikdan oʻchirilsinmi?";
+  $("cdh").textContent=k?"Unga "+k+" kunda yozilgan summalar oʻchmaydi, faqat Oylik jadvalida koʻrinmay qoladi va kategoriyasiz boʻladi.":"Unga hali summa yozilmagan.";
+  $("cdov").hidden=false;$("cdno").focus();
+}
 function nmDelAsk(n){
   var k=Object.keys(days).filter(function(d){return days[d].items.some(function(i){return i.n===n})}).length;
   cdMode="nm";cdName=n;
@@ -1364,6 +1396,11 @@ function catDelAsk(){
 }
 function catDelGo(yes){
   $("cdov").hidden=true;
+  if(cdMode==="oy"){
+    var on=cdName;cdMode="";if(!yes)return;
+    delete catMap[on];saveMap();chips();renderHome();renderOy(true);say("Xodim oʻchirildi: "+tcase(on));
+    return;
+  }
   if(cdMode==="nm"){
     var nm=cdName;cdMode="";
     if(!yes)return;
@@ -1501,8 +1538,16 @@ function bind(){
   });
   $("catDel").onclick=catDelAsk;
   $("oyms").addEventListener("click",function(e){var b=e.target.closest("[data-oym]");if(b){oyM=b.dataset.oym;oyF=oyT="";dpSet("oyf","");dpSet("oyt","");renderOy()}});
-  $("oytab").addEventListener("click",function(e){var td=e.target.closest&&e.target.closest("td.oyc");if(td)oyEdit(td)});
-  $("oytab").addEventListener("keydown",function(e){var td=e.target.closest&&e.target.closest("td.oyc");if(td&&e.key==="Enter"&&e.target===td){e.preventDefault();oyEdit(td)}});
+  $("oytab").addEventListener("click",function(e){var x=e.target.closest&&e.target.closest("[data-oydel]");if(x){oyDelAsk(x.dataset.oydel);return}var td=e.target.closest&&e.target.closest("td.oyc");if(td)oyEdit(td)});
+  $("oytab").addEventListener("keydown",function(e){
+    var td=e.target.closest&&e.target.closest("td.oyc");if(!td||e.target!==td)return;
+    var P=oyPos(td);
+    if(OYMV[e.key]){e.preventDefault();oyFocus(P[0]+OYMV[e.key][0],P[1]+OYMV[e.key][1]);return}
+    if(e.key==="Tab"&&!ROLE_RO()){e.preventDefault();oyFocus(P[0],P[1]+(e.shiftKey?-1:1));return}
+    if(e.key==="Enter"||e.key==="F2"){e.preventDefault();oyEdit(td);return}
+    if((e.key==="Delete"||e.key==="Backspace")&&!ROLE_RO()){e.preventDefault();if(days[td.dataset.k]&&days[td.dataset.k].items.some(function(x){return x.n===td.dataset.n})){oySet(td.dataset.k,td.dataset.n,0);oyFocus(P[0],P[1])}return}
+    if(/^[0-9]$/.test(e.key)&&!e.ctrlKey&&!e.altKey){e.preventDefault();oyEdit(td,e.key)}
+  });
   $("oyaf").addEventListener("submit",function(e){
     e.preventDefault();var n=norm($("oyan").value);
     if(!n)return say("Xodim ismini yozing.",true);
