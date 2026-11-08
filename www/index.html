@@ -915,7 +915,7 @@ async function xlsx(f,t,name){
   if(!ks.length)return say("Bu sanalarda yozuv yoʻq.",true);
   var cs=xCols(ks),T=cs.map(function(){return 0}),TJ=0;
   var rows=ks.map(function(k){
-    var v=cs.map(function(c,i){var x=days[k].items.reduce(function(a,it){return a+(catOf(it.n)===c?val(it):0)},0);T[i]+=x;return x||null}),j=sum(days[k]);
+    var v=cs.map(function(c,i){var x=days[k].items.reduce(function(a,it){return a+(catOf(it.n)===c?it.a:0)},0);T[i]+=x;return x||null}),j=sum(days[k]);
     TJ+=j;return [dmy(k)].concat(v,[j]);
   });
   var ws=XLSX.utils.aoa_to_sheet([["Sana"].concat(cs.map(xName),["JAMI"])].concat(rows,[["JAMI"].concat(T,[TJ])]));
@@ -933,7 +933,7 @@ async function xlsx(f,t,name){
 function renderXl(){
   var f=xF,t=xT,bad=f&&t&&f>t,ks=inRange(f||"0000",t||"9999"),cs=xCols(ks),T=cs.map(function(){return 0}),TJ=0;
   var rows=ks.map(function(k){
-    var d=days[k],j=sum(d),v=cs.map(function(c,i){var x=d.items.reduce(function(a,it){return a+(catOf(it.n)===c?val(it):0)},0);T[i]+=x;return x});
+    var d=days[k],j=sum(d),v=cs.map(function(c,i){var x=d.items.reduce(function(a,it){return a+(catOf(it.n)===c?it.a:0)},0);T[i]+=x;return x});
     TJ+=j;
     return '<tr data-open="'+k+'"><td>'+dmy(k)+'</td>'+v.map(function(x){return '<td>'+(x?fmt(x):"–")+'</td>'}).join("")+'<td class="j">'+fmt(j)+'</td></tr>';
   }).join("");
@@ -1156,10 +1156,10 @@ function catOf(n){
   return c&&allCats().indexOf(c)>=0?c:"Boshqa";
 }
 function monthCat(m,c){
-  return inRange(m+"-01",m+"-31").reduce(function(a,k){return a+days[k].items.reduce(function(x,i){return x+(catOf(i.n)===c?val(i):0)},0)},0);
+  return inRange(m+"-01",m+"-31").reduce(function(a,k){return a+days[k].items.reduce(function(x,i){return x+(catOf(i.n)===c?i.a:0)},0)},0);
 }
 function rangeCat(c){
-  return inRange(cF||"0000",cT||"9999").reduce(function(a,k){return a+days[k].items.reduce(function(x,i){return x+(catOf(i.n)===c?val(i):0)},0)},0);
+  return inRange(cF||"0000",cT||"9999").reduce(function(a,k){return a+days[k].items.reduce(function(x,i){return x+(catOf(i.n)===c?i.a:0)},0)},0);
 }
 function saveMap(){
   var list=Object.keys(catMap).map(function(k){return [k,catMap[k]]});
@@ -1282,7 +1282,7 @@ function catCalc(n,i){
   if(f&&t&&f>t){e.textContent="Oxiri Boshidan oldin";e.dataset.v=0;catTot();return}
   var d=0,v=0;
   inRange(f||"0000",t||"9999").forEach(function(k){
-    var x=days[k].items.reduce(function(a,it){return a+(it.n===n?val(it):0)},0);
+    var x=days[k].items.reduce(function(a,it){return a+(it.n===n?it.a:0)},0);
     if(x){d++;v+=x}
   });
   e.innerHTML="<b>"+fmt(v)+"</b> soʻm";e.dataset.v=v;catTot();
