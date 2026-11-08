@@ -71,6 +71,8 @@ body.rh #oytab td.oyc{cursor:default}
 #nxtab td.c{cursor:text;text-align:right;min-width:130px}
 #nxtab td.c.t{text-align:left;min-width:320px;white-space:normal}
 #nxtab td.c:hover{background:var(--bg)}
+#nxtab td.c.a{cursor:pointer;color:var(--red)}
+#nxtab td.c.t.a{color:var(--tx)}
 #nxtab td.c:focus{outline:3px solid var(--ac);outline-offset:-3px}
 #nxtab td.c input{width:100%;border:0;outline:2px solid var(--ac);border-radius:3px;padding:2px 4px;font:inherit;background:var(--card);color:var(--tx)}
 #nxtab td.c:not(.t) input{text-align:right}
@@ -415,13 +417,14 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
   </section>
   <section id="v-nx" hidden style="display:grid;gap:14px">
     <div class="bar"><button class="g" data-tab="main">← Asosiy boʻlim</button><h2 class="vt">Naxd pul</h2></div>
-    <div class="nqtop"><div class="nqbig"><span>Qoldiq</span><b id="nxq">0</b><small>Hamma kiritilgan naxd pul − ishlatilgan</small></div></div>
+    <div class="nqtop"><div class="nqbig"><span id="nxql">Qoldiq</span><b id="nxq">0</b><small id="nxst">Hamma kiritilgan naxd pul − ishlatilgan</small></div>
+      <div class="nqset"><label>Shu kungacha<span class="dp"><input id="nxt-v" inputmode="numeric" maxlength="10" placeholder="kk.oo.yyyy" autocomplete="off" aria-label="Qaysi kungacha"><button type="button" class="dpb" data-dp="nxt" aria-label="Taqvimni ochish"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button><input type="hidden" id="nxt" data-opt="1"></span></label><button type="button" id="nxgo">Natijani yuklash</button><button type="button" class="g" id="nxclr" hidden>Bugungacha</button></div></div>
     <div class="bar">
       <button type="button" class="g" id="nxp" aria-label="Oldingi yil">‹</button><b id="nxy" style="min-width:48px;text-align:center"></b><button type="button" class="g" id="nxn" aria-label="Keyingi yil">›</button>
       <div class="oyms" id="nxms"></div>
       <button type="button" id="nxx" style="margin-left:auto">Excelga yuklash</button>
     </div>
-    <p class="hint" style="margin:0">Katakni bosib yozing. Enter — saqlab pastga oʻtadi, Tab — oʻngga, strelkalar — katakdan katakka, Delete — oʻchiradi.</p>
+    <p class="hint" style="margin:0"><b>Naxd pul</b> — kunlik savdodagi NAXD PUL (bu yerda yozsangiz, kunlik savdoga ham tushadi). <b>Ishlatildi</b> va <b>Sababi</b> — kunlik savdoda izohiga “kechagi” deb yozilgan summalar; ularni qoʻshish uchun katakni bosing, oʻsha kun ochiladi.</p>
     <div class="box"><div class="sc" id="nxtab"></div></div>
   </section>
   <section id="v-oy" hidden style="display:grid;gap:14px">
@@ -1046,25 +1049,49 @@ function renderXl(){
 
 /* — Naxd pul (qoʻlda) — */
 var NXF=["p","u","s"];
-function nxTot(){var p=0,u=0;Object.keys(NX).forEach(function(k){p+=+NX[k].p||0;u+=+NX[k].u||0});return p-u}
+function nxStart(){var ks=Object.keys(NX).sort();return ks[0]&&ks[0]<"2026-11-01"?ks[0]:"2026-11-01"}
+function nxDay(k){
+  var it=days[k]?days[k].items:[],x=NX[k]||{},ap=0,au=0,al=[],other=false;
+  it.forEach(function(i){if(kch(i)){au+=i.a;al.push(fmt(i.a)+" - "+tcase(i.n))}else if(catOf(i.n)==="Naxd pul"){ap+=i.a;if(i.n!=="NAXD PUL")other=true}});
+  return {p:ap+(+x.p||0),u:au+(+x.u||0),s:al.concat(x.s?[x.s]:[]).join(", "),ap:ap,mp:+x.p||0,mu:+x.u||0,ms:x.s||"",other:other};
+}
+function nxTot(to){
+  var st=nxStart(),ks={},t=0;Object.keys(days).concat(Object.keys(NX)).forEach(function(k){if(k>=st&&(!to||k<=to))ks[k]=1});
+  Object.keys(ks).forEach(function(k){var d=nxDay(k);t+=d.p-d.u});return t;
+}
 function nxKeys(){var y=+nxM.slice(0,4),m=+nxM.slice(5,7),l=new Date(y,m,0).getDate(),r=[];for(var d=1;d<=l;d++)r.push(nxM+"-"+("0"+d).slice(-2));return r}
 function renderNx(force){
   var ae=document.activeElement;
   if(ae&&ae.tagName==="INPUT"&&$("nxtab").contains(ae)&&!force)return;
   var fk=ae&&ae.classList&&ae.classList.contains("c")&&$("nxtab").contains(ae)?[ae.dataset.k,ae.dataset.f]:null;
-  $("nxq").textContent=fmt(nxTot())+" soʻm";
+  $("nxq").textContent=fmt(nxTot(nxTo))+" soʻm";$("nxql").textContent=nxTo?dmy(nxTo)+" holatiga qoldiq":"Qoldiq";$("nxst").textContent=dmy(nxStart())+" dan "+(nxTo?dmy(nxTo)+" gacha":"bugungacha")+": naxd pul − ishlatildi";$("nxclr").hidden=!nxTo;
   $("nxy").textContent=nxM.slice(0,4);
   $("nxms").innerHTML=UZM.map(function(n,i){var v=nxM.slice(0,5)+("0"+(i+1)).slice(-2);return '<button type="button" data-nxm="'+v+'"'+(v===nxM?' class="on" aria-pressed="true"':'')+'>'+n+'</button>'}).join("");
-  var ks=nxKeys(),tp=0,tu=0;
+  var ks=nxKeys().filter(function(k){return !nxTo||k<=nxTo}),tp=0,tu=0;
   $("nxtab").innerHTML='<table><thead><tr><th>Sana</th><th>Naxd pul</th><th>Ishlatildi</th><th>Sababi</th></tr></thead><tbody>'
-    +ks.map(function(k){var x=NX[k]||{};tp+=+x.p||0;tu+=+x.u||0;return '<tr><td class="td" data-open="'+k+'" title="Shu kunning savdosini ochish">'+dmy(k)+'</td>'
-      +'<td class="c" tabindex="0" data-k="'+k+'" data-f="p">'+(x.p?fmt(x.p):"")+'</td>'
-      +'<td class="c" tabindex="0" data-k="'+k+'" data-f="u">'+(x.u?fmt(x.u):"")+'</td>'
-      +'<td class="c t" tabindex="0" data-k="'+k+'" data-f="s">'+esc(x.s||"")+'</td></tr>'}).join("")
+    +ks.map(function(k){var x=nxDay(k);tp+=x.p;tu+=x.u;return '<tr><td class="td" data-open="'+k+'" title="Shu kunning savdosini ochish">'+dmy(k)+'</td>'
+      +'<td class="c" tabindex="0" data-k="'+k+'" data-f="p" title="Bosing: kunlik savdodagi NAXD PULni yozish yoki tahrirlash">'+(x.p?fmt(x.p):"")+'</td>'
+      +'<td class="c a" tabindex="0" data-k="'+k+'" data-f="u" title="Izohida “kechagi” yozilgan summalar. Bosing: shu kunni ochish">'+(x.u?fmt(x.u):"")+'</td>'
+      +'<td class="c t a" tabindex="0" data-k="'+k+'" data-f="s" title="Bosing: shu kunni ochish">'+esc(x.s)+'</td></tr>'}).join("")
     +'</tbody><tfoot><tr class="t"><td>JAMI</td><td style="text-align:right">'+fmt(tp)+'</td><td style="text-align:right">'+fmt(tu)+'</td><td>'+UZM[+nxM.slice(5,7)-1]+' qoldigʻi: '+fmt(tp-tu)+'</td></tr></tfoot></table>';
   if(fk){var t=$("nxtab").querySelector('td.c[data-k="'+fk[0]+'"][data-f="'+fk[1]+'"]');if(t)t.focus()}
 }
 function nxFocus(r,c){var rs=document.querySelectorAll("#nxtab tbody tr");if(!rs.length)return;r=Math.max(0,Math.min(rs.length-1,r));var cs=rs[r].querySelectorAll("td.c");var t=cs[Math.max(0,Math.min(cs.length-1,c))];if(t){t.focus();t.scrollIntoView({block:"nearest"})}}
+function nxSetP(k,v){
+  if(NX[k]&&NX[k].p){var x=Object.assign({},NX[k]);delete x.p;if(!x.u&&!x.s)delete NX[k];else NX[k]=x;saveMap()}
+  var old=days[k],its=old?old.items.slice():[],pos=-1;
+  its=its.filter(function(x,j){if(x.n==="NAXD PUL"&&!kch(x)){if(pos<0)pos=j;return false}return true});
+  if(v){if(pos<0)its.unshift({n:"NAXD PUL",a:v});else its.splice(pos,0,{n:"NAXD PUL",a:v})}
+  if(!its.length)delete days[k];
+  else{
+    var hist=old&&old.hist?old.hist.slice():[],df=old?diffItems(old.items,its):[];
+    if(df.length){var now=new Date();hist.push({t:dmy(iso(now))+" "+pad(now.getHours())+":"+pad(now.getMinutes()),d:df});hist=hist.slice(-50)}
+    days[k]={date:k,items:its,at:Date.now(),hist:hist};
+  }
+  persist();write(k);renderHome();renderNx(true);
+  if(k===cur&&tab!=="enter")fillForm();
+  say(dmy(k)+": naxd pul "+(v?fmt(v)+" soʻm saqlandi (kunlik savdoga ham yozildi)":"oʻchirildi"));
+}
 function nxSet(k,f,v){
   var x=Object.assign({},NX[k]||{});
   if(v===""||v===0||v==null)delete x[f];else x[f]=v;
@@ -1073,8 +1100,11 @@ function nxSet(k,f,v){
 }
 function nxEdit(td,first){
   if(ROLE_RO()||td.querySelector("input"))return;
+  if(td.dataset.f!=="p"){open(td.dataset.k);say("Ishlatilgan summani shu kunda izohiga “kechagi” deb yozing.");return}
+  var dd=nxDay(td.dataset.k);
+  if(dd.other){open(td.dataset.k);say("Bu kunda Naxd pulga bir nechta nom yozilgan, shu yerda tahrirlang.");return}
   var k=td.dataset.k,f=td.dataset.f,tr=td.parentNode,ri=[].indexOf.call(tr.parentNode.children,tr),ci=NXF.indexOf(f),x=NX[k]||{};
-  var v0=f==="s"?(x.s||""):(+x[f]||0),i=document.createElement("input");
+  var v0=dd.p,i=document.createElement("input");
   if(f!=="s"){i.className="amt";i.inputMode="text"}
   i.value=first!=null?first:(f==="s"?v0:(v0?fmt(v0):""));td.textContent="";td.appendChild(i);i.focus();
   if(first==null)i.select();else if(f!=="s")fmtInput(i);
@@ -1082,7 +1112,7 @@ function nxEdit(td,first){
   function fin(save,dr,dc){
     if(done)return;done=true;
     var v=f==="s"?i.value.trim().replace(/\s+/g," "):num(i.value);
-    if(save&&v!==v0)nxSet(k,f,v);else renderNx(true);
+    if(save&&v!==v0)nxSetP(k,v);else renderNx(true);
     if(dr!=null)nxFocus(ri+dr,ci+dc);
   }
   if(f!=="s")i.addEventListener("input",function(){fmtInput(i)});
@@ -1097,7 +1127,7 @@ function nxEdit(td,first){
 async function nxExcel(){
   if(typeof XLSX==="undefined")return say("Excel kutubxonasi yuklanmadi. Internetni tekshiring.",true);
   var ks=nxKeys(),mn=UZM[+nxM.slice(5,7)-1],tp=0,tu=0;
-  var rows=[["Qoldiq","","",nxTot()],["Sana","Naxd pul","Ishlatildi","Sababi"]].concat(ks.map(function(k){var x=NX[k]||{};tp+=+x.p||0;tu+=+x.u||0;return [dmy(k),x.p||null,x.u||null,x.s||""]}),[["JAMI",tp,tu,mn+" qoldigʻi: "+fmt(tp-tu)]]);
+  var rows=[["Qoldiq","","",nxTot()],["Sana","Naxd pul","Ishlatildi","Sababi"]].concat(ks.map(function(k){var x=nxDay(k);tp+=x.p;tu+=x.u;return [dmy(k),x.p||null,x.u||null,x.s]}),[["JAMI",tp,tu,mn+" qoldigʻi: "+fmt(tp-tu)]]);
   var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=[{wch:12},{wch:14},{wch:14},{wch:50}];
   Object.keys(ws).forEach(function(c){if(c[0]!=="!"&&ws[c].t==="n")ws[c].z="#,##0"});
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,mn);
@@ -1423,7 +1453,7 @@ function dpHtml(id,label){
   return '<span class="dp"><input id="'+id+'-v" inputmode="numeric" maxlength="10" autocomplete="off" aria-label="'+label+'"><button type="button" class="dpb" data-dp="'+id+'" aria-label="Taqvimni ochish"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button><input type="hidden" id="'+id+'" data-opt="1"></span>';
 }
 function isStart(id){return /^(wf|rf|xf|cof|oyf|cf\d+)$/.test(id)}
-function goBtn(id){return id==="oyf"||id==="oyt"?$("oygo"):id==="wf"||id==="wt"?$("wgo"):id==="xf"||id==="xt"?$("xgo"):id==="cof"||id==="cot"?$("cgo"):id==="rf"||id==="rt"?$("rgo"):/^c[ft]\d+$/.test(id)?$("cg"+id.slice(2)):null}
+function goBtn(id){return id==="nxt"?$("nxgo"):id==="oyf"||id==="oyt"?$("oygo"):id==="wf"||id==="wt"?$("wgo"):id==="xf"||id==="xt"?$("xgo"):id==="cof"||id==="cot"?$("cgo"):id==="rf"||id==="rt"?$("rgo"):/^c[ft]\d+$/.test(id)?$("cg"+id.slice(2)):null}
 function dpBind(w){
     var v=w.querySelector("input"),id=v.id.slice(0,-2),g=document.createElement("span");
     g.className="dpg";g.setAttribute("aria-hidden","true");w.insertBefore(g,v);v.placeholder="";dpG(id);
@@ -1475,7 +1505,7 @@ var ORDER=["Naxd pul","Humo","Uzcard","QR toʻlov","Naxd tovar","Oylik","Rasxod"
 var edN=null,catR={},custom=BASE.slice();
 function mergeCust(a){custom=BASE.concat(a.filter(function(c){return BASE.indexOf(c)<0}))}
 var catMap={"NAXD TOVAR":"Naxd tovar","NAM EKOMED":"Naxd tovar","TRICHAP":"Naxd tovar","SNIKERS":"Naxd tovar","OYLIK":"Oylik","KLIK":"Klik","JAHONMED BIO":"Jahonmed Bio"},mapDoc=null,curCat="",cm="";
-var CM0=Object.assign({},catMap),NX={},nxM=today().slice(0,7),NQ={s:"2026-11-08",a:0},OYE={},HC=[],CORE=["Naxd pul","Humo","Uzcard","QR toʻlov","Rasxod"],ORD=[],moved=false,hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
+var CM0=Object.assign({},catMap),NX={},nxM=today().slice(0,7),nxTo="",NQ={s:"2026-11-08",a:0},OYE={},HC=[],CORE=["Naxd pul","Humo","Uzcard","QR toʻlov","Rasxod"],ORD=[],moved=false,hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
 function allCats(){return ORDER.concat(custom.filter(function(c){return BASE.indexOf(c)<0})).filter(function(c){return HC.indexOf(c)<0})}
 function canDelCat(c){return CORE.indexOf(c)<0&&allCats().indexOf(c)>=0}
 function addCat(n){var h=HC.filter(function(c){return c.toUpperCase()===n.toUpperCase()})[0];if(h){HC.splice(HC.indexOf(h),1);return h}custom.push(n);return n}
@@ -1752,7 +1782,9 @@ function bind(){
     if(c&&c!=="Oylik"&&c!=="Boshqa")return say(n+" “"+c+"” kategoriyasida turibdi. Boshqa ism yozing yoki uni Kategoriyalar boʻlimida oʻzgartiring.",true);
     catMap[n]="Oylik";delete OYE[n];hid=hid.filter(function(x){return x!==n});saveMap();chips();$("oyan").value="";renderOy();say("Xodim qoʻshildi: "+tcase(n));
   });
-  $("nxms").addEventListener("click",function(e){var b=e.target.closest("[data-nxm]");if(b){nxM=b.dataset.nxm;renderNx()}});
+  $("nxms").addEventListener("click",function(e){var b=e.target.closest("[data-nxm]");if(b){nxM=b.dataset.nxm;nxTo="";dpSet("nxt","");renderNx()}});
+  $("nxgo").onclick=function(){var v=$("nxt").value;if(!v){var r=$("nxt-v").value.trim();if(r)return say("Sanani toʻgʻri kiriting: kk.oo.yyyy",true);nxTo="";renderNx();return}if(v<nxStart())return say("Hisob "+dmy(nxStart())+" dan boshlanadi. Undan keyingi sanani kiriting.",true);nxTo=v;nxM=v.slice(0,7);calClose();renderNx()};
+  $("nxclr").onclick=function(){nxTo="";dpSet("nxt","");nxM=today().slice(0,7);renderNx()};
   $("nxp").onclick=function(){nxM=(+nxM.slice(0,4)-1)+nxM.slice(4);renderNx()};
   $("nxn").onclick=function(){nxM=(+nxM.slice(0,4)+1)+nxM.slice(4);renderNx()};
   $("nxx").onclick=nxExcel;
@@ -1763,8 +1795,11 @@ function bind(){
     if(OYMV[e.key]){e.preventDefault();nxFocus(r+OYMV[e.key][0],c+OYMV[e.key][1]);return}
     if(e.key==="Tab"&&!ROLE_RO()){e.preventDefault();nxFocus(r,c+(e.shiftKey?-1:1));return}
     if(e.key==="Enter"||e.key==="F2"){e.preventDefault();nxEdit(td);return}
-    if((e.key==="Delete"||e.key==="Backspace")&&!ROLE_RO()){e.preventDefault();if(NX[td.dataset.k]&&NX[td.dataset.k][td.dataset.f]){nxSet(td.dataset.k,td.dataset.f,"");nxFocus(r,c)}return}
-    if(e.key.length===1&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&(td.dataset.f==="s"||/[0-9]/.test(e.key))){e.preventDefault();nxEdit(td,e.key)}
+    if((e.key==="Delete"||e.key==="Backspace")&&!ROLE_RO()){e.preventDefault();var dk=td.dataset.k,df=td.dataset.f,dd=nxDay(dk);
+      if(df==="p"&&dd.p&&!dd.other){nxSetP(dk,0);nxFocus(r,c)}
+      else if(df!=="p"&&(dd.mu||dd.ms)){var x=Object.assign({},NX[dk]);delete x.u;delete x.s;if(!x.p)delete NX[dk];else NX[dk]=x;saveMap();renderNx(true);nxFocus(r,c)}
+      return}
+    if(/^[0-9]$/.test(e.key)&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&td.dataset.f==="p"){e.preventDefault();nxEdit(td,e.key)}
   });
   $("nqa").addEventListener("input",function(){fmtInput(this)});
   $("nqtab").addEventListener("click",function(e){var td=e.target.closest&&e.target.closest("td.nqc");if(td)nqEdit(td)});
