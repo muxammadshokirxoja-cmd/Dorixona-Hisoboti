@@ -994,8 +994,10 @@ function oyData(){
     var a=oyF||sorted()[0]||today(),b=oyT||today();
     for(var k=a,n=0;k<=b&&n<1500;k=shift(k,1),n++)ks.push(k);
   }else for(var d=1;d<=last;d++)ks.push(oyM+"-"+("0"+d).slice(-2));
-  catNames("Oylik").forEach(function(n){if(n!=="OYLIK"&&names.indexOf(n)<0)names.push(n)});
-  ks.forEach(function(k){(days[k]?days[k].items:[]).forEach(function(i){if(catOf(i.n)!=="Oylik")return;if(names.indexOf(i.n)<0)names.push(i.n);cell[k+"|"+i.n]=(cell[k+"|"+i.n]||0)+i.a})});
+  var m0=oyF||oyT?(oyF||sorted()[0]||today()).slice(0,7):oyM;
+  function off(n){return OYE[n]&&m0>=OYE[n]}
+  catNames("Oylik").forEach(function(n){if(n!=="OYLIK"&&!off(n)&&names.indexOf(n)<0)names.push(n)});
+  ks.forEach(function(k){(days[k]?days[k].items:[]).forEach(function(i){if(catOf(i.n)!=="Oylik"||off(i.n))return;if(names.indexOf(i.n)<0)names.push(i.n);cell[k+"|"+i.n]=(cell[k+"|"+i.n]||0)+i.a})});
   var T=names.map(function(n){return ks.reduce(function(a,k){return a+(cell[k+"|"+n]||0)},0)});
   return {ks:ks,names:names,cell:cell,T:T};
 }
@@ -1284,7 +1286,7 @@ var ORDER=["Naxd pul","Humo","Uzcard","QR toʻlov","Naxd tovar","Oylik","Rasxod"
 var edN=null,catR={},custom=BASE.slice();
 function mergeCust(a){custom=BASE.concat(a.filter(function(c){return BASE.indexOf(c)<0}))}
 var catMap={"NAXD TOVAR":"Naxd tovar","NAM EKOMED":"Naxd tovar","TRICHAP":"Naxd tovar","SNIKERS":"Naxd tovar","OYLIK":"Oylik","KLIK":"Klik","JAHONMED BIO":"Jahonmed Bio"},mapDoc=null,curCat="",cm="";
-var CM0=Object.assign({},catMap),HC=[],CORE=["Naxd pul","Humo","Uzcard","QR toʻlov","Rasxod"],ORD=[],moved=false,hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
+var CM0=Object.assign({},catMap),OYE={},HC=[],CORE=["Naxd pul","Humo","Uzcard","QR toʻlov","Rasxod"],ORD=[],moved=false,hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
 function allCats(){return ORDER.concat(custom.filter(function(c){return BASE.indexOf(c)<0})).filter(function(c){return HC.indexOf(c)<0})}
 function canDelCat(c){return CORE.indexOf(c)<0&&allCats().indexOf(c)>=0}
 function addCat(n){var h=HC.filter(function(c){return c.toUpperCase()===n.toUpperCase()})[0];if(h){HC.splice(HC.indexOf(h),1);return h}custom.push(n);return n}
@@ -1306,8 +1308,8 @@ function saveMap(){
   try{localStorage.setItem(KEY+"-map",JSON.stringify(list))}catch(e){}
   try{localStorage.setItem(KEY+"-cust",JSON.stringify(custom))}catch(e){}
   hid=hid.filter(function(n){return !catMap[n]||CM0[n]});
-  try{localStorage.setItem(KEY+"-hid",JSON.stringify(hid));localStorage.setItem(KEY+"-ord",JSON.stringify(ORD));localStorage.setItem(KEY+"-hcat",JSON.stringify(HC))}catch(e){}
-  var body={list:list.map(function(p){return {n:p[0],c:p[1]}}),cats:custom.slice(),hid:hid.slice(),ord:ORD.slice(),hcat:HC.slice()};
+  try{localStorage.setItem(KEY+"-hid",JSON.stringify(hid));localStorage.setItem(KEY+"-ord",JSON.stringify(ORD));localStorage.setItem(KEY+"-hcat",JSON.stringify(HC));localStorage.setItem(KEY+"-oye",JSON.stringify(OYE))}catch(e){}
+  var body={list:list.map(function(p){return {n:p[0],c:p[1]}}),cats:custom.slice(),hid:hid.slice(),ord:ORD.slice(),hcat:HC.slice(),oye:Object.assign({},OYE)};
   queue=queue.then(function(){if(mapDoc)return mapDoc.set(body)}).then(null,function(){st("Saqlanmadi. Internetni tekshiring.",true)});
 }
 function catNames(c){return known().filter(function(n){return catOf(n)===c})}
@@ -1328,11 +1330,12 @@ function renderCat(){
     catCalc(n,i);
   });
 }
+function oyFrom(){return oyF||oyT?(oyF||sorted()[0]||today()).slice(0,7):oyM}
 function oyDelAsk(n){
-  var k=Object.keys(days).filter(function(d){return days[d].items.some(function(i){return i.n===n})}).length;
+  var m=oyFrom(),mn=UZM[+m.slice(5,7)-1]+" "+m.slice(0,4);
   cdMode="oy";cdName=n;
-  $("cdw").textContent=tcase(n);$("cdq").lastChild.textContent="Bu xodim Oylikdan oʻchirilsinmi?";
-  $("cdh").textContent=k?"Unga "+k+" kunda yozilgan summalar oʻchmaydi, faqat Oylik jadvalida koʻrinmay qoladi va kategoriyasiz boʻladi.":"Unga hali summa yozilmagan.";
+  $("cdw").textContent=tcase(n);$("cdq").lastChild.textContent=mn+" oyidan boshlab oʻchirilsinmi?";
+  $("cdh").textContent="Xodim "+mn+" va keyingi oylar jadvalidan olib tashlanadi. Oldingi oylarda u avvalgidek koʻrinadi. Yozilgan summalar oʻchmaydi.";
   $("cdov").hidden=false;$("cdno").focus();
 }
 function nmDelAsk(n){
@@ -1398,7 +1401,7 @@ function catDelGo(yes){
   $("cdov").hidden=true;
   if(cdMode==="oy"){
     var on=cdName;cdMode="";if(!yes)return;
-    delete catMap[on];saveMap();chips();renderHome();renderOy(true);say("Xodim oʻchirildi: "+tcase(on));
+    var fm=oyFrom();OYE[on]=fm;saveMap();renderOy(true);say(tcase(on)+" "+UZM[+fm.slice(5,7)-1]+" oyidan boshlab oʻchirildi");
     return;
   }
   if(cdMode==="nm"){
@@ -1553,7 +1556,7 @@ function bind(){
     if(!n)return say("Xodim ismini yozing.",true);
     var c=isKnown(n)?catOf(n):"";
     if(c&&c!=="Oylik"&&c!=="Boshqa")return say(n+" “"+c+"” kategoriyasida turibdi. Boshqa ism yozing yoki uni Kategoriyalar boʻlimida oʻzgartiring.",true);
-    catMap[n]="Oylik";hid=hid.filter(function(x){return x!==n});saveMap();chips();$("oyan").value="";renderOy();say("Xodim qoʻshildi: "+tcase(n));
+    catMap[n]="Oylik";delete OYE[n];hid=hid.filter(function(x){return x!==n});saveMap();chips();$("oyan").value="";renderOy();say("Xodim qoʻshildi: "+tcase(n));
   });
   $("oygo").onclick=function(){if(!rangeCheck("oyf"))return;oyF=$("oyf").value;oyT=$("oyt").value;calClose();renderOy()};
   $("oyp").onclick=function(){oyM=(+oyM.slice(0,4)-1)+oyM.slice(4);oyF=oyT="";dpSet("oyf","");dpSet("oyt","");renderOy()};
@@ -1723,7 +1726,7 @@ function startPh(ph,name){
   mapDoc.onSnapshot(function(d){
     var b=d.exists&&d.data();
     if(!d.exists&&d.metadata.fromCache)return;
-    catMap=Object.assign({},CM0);custom=BASE.slice();hid=b&&Array.isArray(b.hid)?b.hid.slice():[];ORD=b&&Array.isArray(b.ord)?b.ord.slice():[];HC=b&&Array.isArray(b.hcat)?b.hcat.slice():[];
+    catMap=Object.assign({},CM0);custom=BASE.slice();hid=b&&Array.isArray(b.hid)?b.hid.slice():[];ORD=b&&Array.isArray(b.ord)?b.ord.slice():[];HC=b&&Array.isArray(b.hcat)?b.hcat.slice():[];OYE=b&&b.oye&&typeof b.oye==="object"?Object.assign({},b.oye):{};
     if(b&&Array.isArray(b.list))b.list.forEach(function(p){catMap[p.n]=p.c});
     if(b&&Array.isArray(b.cats))mergeCust(b.cats);
     chips();renderHome();if(tab==="cat")renderCat();
@@ -1753,7 +1756,7 @@ function applyScope(){
     });
     var mm=allMap[id]||{};Object.assign(m,mm.m||{});c=c.concat(mm.c||[]);
   });
-  days=o;catMap=m;mergeCust(c);ORD=ids.length===1?((allMap[ids[0]]||{}).o||[]).slice():[];HC=ids.length===1?((allMap[ids[0]]||{}).h||[]).slice():[];
+  days=o;catMap=m;mergeCust(c);ORD=ids.length===1?((allMap[ids[0]]||{}).o||[]).slice():[];HC=ids.length===1?((allMap[ids[0]]||{}).h||[]).slice():[];OYE=ids.length===1?Object.assign({},(allMap[ids[0]]||{}).e||{}):{};
   head=scope==="all"?"Barcha dorixonalar":(PHS.filter(function(p){return p.id===scope})[0]||{}).name||scope;
   showHead();refresh();
 }
@@ -1879,7 +1882,7 @@ function watchPh(p){
   fdb.doc("ph/"+p.id+"/settings/map").onSnapshot(function(d){
     var b=d.exists&&d.data(),m={};
     if(b&&Array.isArray(b.list))b.list.forEach(function(x){m[x.n]=x.c});
-    allMap[p.id]={m:m,c:b&&b.cats||[],o:b&&b.ord||[],h:b&&b.hcat||[]};applyScope();
+    allMap[p.id]={m:m,c:b&&b.cats||[],o:b&&b.ord||[],h:b&&b.hcat||[],e:b&&b.oye||{}};applyScope();
   },function(){});
 }
 function startRh(){
