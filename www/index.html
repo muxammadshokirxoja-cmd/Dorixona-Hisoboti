@@ -40,8 +40,13 @@ button.ht.hn{display:flex;align-items:center;gap:14px;padding:18px;min-height:96
 #oytab th{text-align:center;font-weight:700}
 #oytab td:first-child{font-weight:700;text-align:left}
 #oytab tr.t td{font-weight:800;background:var(--yel);color:var(--yel-tx)}
-#oytab tbody tr{cursor:pointer}
-#oytab tbody tr:hover td{background:var(--bg)}
+#oytab td.oyd{cursor:pointer}
+#oytab td.oyd:hover{text-decoration:underline}
+#oytab td.oyc{cursor:text}
+#oytab td.oyc:hover{background:var(--bg)}
+#oytab td.oyc input{width:100%;min-width:110px;border:0;outline:2px solid var(--ac);border-radius:3px;padding:2px 4px;text-align:right;font:inherit;background:var(--card);color:var(--tx)}
+body.rh #oytab td.oyc{cursor:default}
+.oyadd{display:flex;gap:8px;flex-wrap:wrap}
 button.ht{background:var(--card);color:var(--tx);border-color:var(--bd);border-radius:12px;padding:18px 16px;text-align:left;display:grid;gap:4px;align-content:start;font-weight:400;min-width:0}
 button.ht:hover{border-color:var(--ac)}
 button.ht b{font-size:18px}
@@ -371,7 +376,8 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
       <span class="dp"><input id="oyt-v" inputmode="numeric" maxlength="10" placeholder="kk.oo.yyyy" autocomplete="off" aria-label="Tugash sanasi"><button type="button" class="dpb" data-dp="oyt" aria-label="Taqvimni ochish"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button><input type="hidden" id="oyt" data-opt="1"></span>
       <button id="oygo">Natijani yuklash</button>
     </div>
-    <p class="hint" style="margin:0">“Oylik” kategoriyasidagi nomlar shu yerda ustun boʻlib chiqadi. Kunlik savdoda masalan <b>50.000 – NURIDDIN</b> deb yozsangiz va NURIDDIN “Oylik” kategoriyasida boʻlsa, shu jadvalga tushadi.</p>
+    <form class="oyadd ro" id="oyaf" autocomplete="off"><input id="oyan" placeholder="Yangi xodim ismi" aria-label="Yangi xodim ismi" style="width:240px;max-width:100%"><button>+ Xodim qoʻshish</button></form>
+    <p class="hint" style="margin:0">Jadvaldagi istalgan katakni bosib summa yozing yoki oʻzgartiring, Enter bilan saqlanadi. “Oylik” kategoriyasidagi nomlar shu yerda ustun boʻlib chiqadi. Kunlik savdoda masalan <b>50.000 – NURIDDIN</b> deb yozsangiz va NURIDDIN “Oylik” kategoriyasida boʻlsa, shu jadvalga tushadi.</p>
     <div class="box"><div class="sc" id="oytab"></div></div>
   </section>
   <section id="v-cats" hidden style="display:grid;gap:14px">
@@ -985,6 +991,7 @@ function oyData(){
     var a=oyF||sorted()[0]||today(),b=oyT||today();
     for(var k=a,n=0;k<=b&&n<1500;k=shift(k,1),n++)ks.push(k);
   }else for(var d=1;d<=last;d++)ks.push(oyM+"-"+("0"+d).slice(-2));
+  catNames("Oylik").forEach(function(n){if(n!=="OYLIK"&&names.indexOf(n)<0)names.push(n)});
   ks.forEach(function(k){(days[k]?days[k].items:[]).forEach(function(i){if(catOf(i.n)!=="Oylik")return;if(names.indexOf(i.n)<0)names.push(i.n);cell[k+"|"+i.n]=(cell[k+"|"+i.n]||0)+i.a})});
   var T=names.map(function(n){return ks.reduce(function(a,k){return a+(cell[k+"|"+n]||0)},0)});
   return {ks:ks,names:names,cell:cell,T:T};
@@ -998,9 +1005,39 @@ function renderOy(){
   if(!D.names.length){$("oytab").innerHTML='<p class="hint" style="padding:16px;margin:0">'+(rg?ttl+' davrida':UZM[+oyM.slice(5,7)-1]+' oyida')+' oylik yozilmagan.</p>';return}
   var all=D.T.reduce(function(a,b){return a+b},0);
   $("oytab").innerHTML='<table><thead><tr><th colspan="'+(D.names.length+1)+'">OYLIK — '+ttl+'</th></tr><tr><th>Sana</th>'+D.names.map(function(n){return '<th>'+esc(tcase(n))+'</th>'}).join("")+'</tr></thead><tbody>'
-    +D.ks.map(function(k){return '<tr data-open="'+k+'"><td>'+dmy(k)+'</td>'+D.names.map(function(n){var v=D.cell[k+"|"+n];return '<td>'+(v?fmt(v):"")+'</td>'}).join("")+'</tr>'}).join("")
+    +D.ks.map(function(k){return '<tr><td class="oyd" data-open="'+k+'" title="Shu kunni ochish">'+dmy(k)+'</td>'+D.names.map(function(n){var v=D.cell[k+"|"+n];return '<td class="oyc" data-k="'+k+'" data-n="'+esc(n)+'" tabindex="0" title="Bosing: yozish yoki tahrirlash">'+(v?fmt(v):"")+'</td>'}).join("")+'</tr>'}).join("")
     +'</tbody><tfoot><tr class="t"><td>JAMI</td>'+D.T.map(function(v){return '<td>'+fmt(v)+'</td>'}).join("")+'</tr>'
     +(D.names.length>1?'<tr class="t"><td>Hammasi</td><td colspan="'+D.names.length+'">'+fmt(all)+'</td></tr>':'')+'</tfoot></table>';
+}
+function oyEdit(td){
+  if(ROLE_RO()||td.querySelector("input"))return;
+  var k=td.dataset.k,n=td.dataset.n,cur0=(days[k]?days[k].items:[]).filter(function(i){return i.n===n}).reduce(function(a,i){return a+i.a},0);
+  var i=document.createElement("input");i.className="amt";i.inputMode="text";i.value=cur0?fmt(cur0):"";td.textContent="";td.appendChild(i);i.focus();i.select();
+  var done=false;
+  function fin(save){
+    if(done)return;done=true;
+    if(!save){renderOy();return}
+    var v=num(i.value);if(v===cur0){renderOy();return}
+    oySet(k,n,v);
+  }
+  i.addEventListener("input",function(){fmtInput(i)});
+  i.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();fin(true)}if(e.key==="Escape"){e.preventDefault();fin(false)}});
+  i.addEventListener("blur",function(){fin(true)});
+}
+function ROLE_RO(){return document.body.classList.contains("rh")}
+function oySet(k,n,v){
+  var old=days[k],its=old?old.items.slice():[],pos=-1;
+  its=its.filter(function(x,j){if(x.n===n){if(pos<0)pos=j;return false}return true});
+  if(v){if(pos<0)its.push({n:n,a:v});else its.splice(pos,0,{n:n,a:v})}
+  if(!its.length){delete days[k]}
+  else{
+    var hist=old&&old.hist?old.hist.slice():[],df=old?diffItems(old.items,its):[];
+    if(df.length){var now=new Date();hist.push({t:dmy(iso(now))+" "+pad(now.getHours())+":"+pad(now.getMinutes()),d:df});hist=hist.slice(-50)}
+    days[k]={date:k,items:its,at:Date.now(),hist:hist};
+  }
+  persist();write(k);renderHome();renderOy();
+  if(k===cur&&tab!=="enter")fillForm();
+  say(dmy(k)+": "+tcase(n)+(v?" — "+fmt(v)+" soʻm saqlandi":" oʻchirildi"));
 }
 async function oyExcel(){
   if(typeof XLSX==="undefined")return say("Excel kutubxonasi yuklanmadi. Internetni tekshiring.",true);
@@ -1464,6 +1501,15 @@ function bind(){
   });
   $("catDel").onclick=catDelAsk;
   $("oyms").addEventListener("click",function(e){var b=e.target.closest("[data-oym]");if(b){oyM=b.dataset.oym;oyF=oyT="";dpSet("oyf","");dpSet("oyt","");renderOy()}});
+  $("oytab").addEventListener("click",function(e){var td=e.target.closest&&e.target.closest("td.oyc");if(td)oyEdit(td)});
+  $("oytab").addEventListener("keydown",function(e){var td=e.target.closest&&e.target.closest("td.oyc");if(td&&e.key==="Enter"&&e.target===td){e.preventDefault();oyEdit(td)}});
+  $("oyaf").addEventListener("submit",function(e){
+    e.preventDefault();var n=norm($("oyan").value);
+    if(!n)return say("Xodim ismini yozing.",true);
+    var c=isKnown(n)?catOf(n):"";
+    if(c&&c!=="Oylik"&&c!=="Boshqa")return say(n+" “"+c+"” kategoriyasida turibdi. Boshqa ism yozing yoki uni Kategoriyalar boʻlimida oʻzgartiring.",true);
+    catMap[n]="Oylik";hid=hid.filter(function(x){return x!==n});saveMap();chips();$("oyan").value="";renderOy();say("Xodim qoʻshildi: "+tcase(n));
+  });
   $("oygo").onclick=function(){if(!rangeCheck("oyf"))return;oyF=$("oyf").value;oyT=$("oyt").value;calClose();renderOy()};
   $("oyp").onclick=function(){oyM=(+oyM.slice(0,4)-1)+oyM.slice(4);oyF=oyT="";dpSet("oyf","");dpSet("oyt","");renderOy()};
   $("oyn").onclick=function(){oyM=(+oyM.slice(0,4)+1)+oyM.slice(4);oyF=oyT="";dpSet("oyf","");dpSet("oyt","");renderOy()};
