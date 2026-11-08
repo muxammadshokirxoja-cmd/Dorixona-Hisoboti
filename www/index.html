@@ -1640,7 +1640,7 @@ function renderRh(){
   var ae=document.activeElement,keep=ae&&ae.closest&&ae.closest("#phadd");
   if(!keep)e.innerHTML='<div class="rhc"><button type="button" class="rhp all" data-sc="all"><b>Umumiy</b><small>Bugun: '+fmt(all)+' soʻm</small></button>'
     +PHS.map(function(p){return '<div class="rhw"><button type="button" class="rhp" data-sc="'+esc(p.id)+'"><b>'+esc(p.name)+'</b><small>Bugun: '+fmt(phTotal(p.id,t))+' soʻm</small><small>'+UZM[+t.slice(5,7)-1]+': '+fmt(phMonth(p.id,t.slice(0,7)))+' soʻm</small>'+phMiss(p.id,t)+'<small>Login: '+esc(p.login||p.id)+'</small></button><div class="pdb"><button type="button" class="pdl prs" data-pr="'+esc(p.id)+'">Parolni tiklash</button><button type="button" class="pdl" data-pd="'+esc(p.id)+'">Oʻchirish</button></div></div>'}).join("")
-    +'</div>'+rhHist()+'<div class="rha"><h2>Zaxira nusxa</h2><p class="hint">Hamma dorixonalarning hamma kunlari bitta Excel faylga yoziladi. Haftasiga bir marta oling.</p><div class="bar"><button type="button" id="bkp">Zaxira olish (Excel)</button><span id="bkl">'+bkLast()+'</span></div></div>'
+    +'</div><div class="rha"><h2>Zaxira nusxa</h2><p class="hint">Hamma dorixonalarning hamma kunlari bitta Excel faylga yoziladi. Haftasiga bir marta oling.</p><div class="bar"><button type="button" id="bkp">Zaxira olish (Excel)</button><span id="bkl">'+bkLast()+'</span></div></div>'
     +'<form class="rha" id="phadd" autocomplete="off"><h2>+ Dorixona qoʻshish</h2><div class="bar"><input id="pn" placeholder="Dorixona nomi" required><input id="pl" placeholder="Login (lotin harflarda)" autocapitalize="none" required><input id="pp" placeholder="Parol (kamida 6 belgi)" required><button>Qoʻshish</button></div></form>';
 }
 function bkLast(){
