@@ -677,10 +677,10 @@ function num(s){
   if(!/[+\-]/.test(s))return parseInt(digits(s),10)||0;
   var t=0,m,re=/([+\-]?)\s*([\d.\s]*)/g;
   while((m=re.exec(s))&&m[0]!==""){var v=parseInt(digits(m[2]),10)||0;t+=m[1]==="-"?-v:v}
-  return Math.max(0,t);
+  return /^\s*-/.test(s)?t:Math.max(0,t);
 }
 function isExpr(s){return /\d[\d.\s]*[+\-]/.test(String(s||""))}
-function calcAmt(el){if(isExpr(el.value)){var v=num(el.value);el.value=v?fmt(v):"";live();if(!v)say("Hisob natijasi 0 yoki manfiy chiqdi, summani qayta yozing.",true)}}
+function calcAmt(el){if(isExpr(el.value)){var v=num(el.value);el.value=v?fmt(v):"";live();if(!v)say("Hisob natijasi 0 yoki manfiy chiqdi, summani qayta yozing. Manfiy son uchun boshiga “-” qoʻying.",true)}}
 function pad(n){return String(n).padStart(2,"0")}
 function iso(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
 function pd(s){var a=s.split("-");return new Date(+a[0],+a[1]-1,+(a[2]||1))}
@@ -935,9 +935,9 @@ function go(date){
 function open(date){if(ROLE==="rh")return;setTab("enter");go(date)}
 function fmtInput(el){
   if(/[+\-]/.test(el.value)){
-    var raw=el.value.replace(/[^\d+\-]/g,"").replace(/([+\-])[+\-]+/g,"$1").replace(/^[+\-]+/,"");
+    var neg=/^\s*-/.test(el.value),raw=el.value.replace(/[^\d+\-]/g,"").replace(/([+\-])[+\-]+/g,"$1").replace(/^[+\-]+/,"");
     var at=el.selectionStart===el.value.length;
-    el.value=raw.split(/([+\-])/).map(function(x){return /^[+\-]$/.test(x)?" "+x+" ":x?fmt(+x.replace(/^0+(?=\d)/,"")):""}).join("");
+    el.value=(neg?"-":"")+raw.split(/([+\-])/).map(function(x){return /^[+\-]$/.test(x)?" "+x+" ":x?fmt(+x.replace(/^0+(?=\d)/,"")):""}).join("");
     if(at)try{el.setSelectionRange(el.value.length,el.value.length)}catch(e){}
     return;
   }
@@ -1051,7 +1051,7 @@ function renderXl(){
 /* — Naxd pul (qoʻlda) — */
 var NXF=["p","u","s"];
 function nxCarry(m){var f=m+"-01";return f>nxStart()?nxTot(shift(f,-1)):0}
-function nxStart(){var ks=Object.keys(NX).sort();return ks[0]&&ks[0]<"2026-11-01"?ks[0]:"2026-11-01"}
+function nxStart(){var ks=Object.keys(NX).concat(Object.keys(days)).sort();return ks[0]||today()}
 function nxDay(k){
   var it=days[k]?days[k].items:[],x=NX[k]||{},ap=0,au=0,al=[],other=false;
   it.forEach(function(i){if(kch(i)){au+=i.a;al.push(fmt(i.a)+" - "+tcase(i.n))}else if(catOf(i.n)==="Naxd pul"){ap+=i.a;if(i.n!=="NAXD PUL")other=true}});
