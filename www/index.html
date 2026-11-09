@@ -72,8 +72,7 @@ body.rh #oytab td.oyc{cursor:default}
 #nxtab td.c{cursor:text;text-align:right;min-width:130px}
 #nxtab td.c.t{text-align:left;min-width:320px;white-space:normal}
 #nxtab td.c:hover{background:var(--bg)}
-#nxtab td.c.a{cursor:pointer;color:var(--red)}
-#nxtab td.c.t.a{color:var(--tx)}
+#nxtab td.c.a{color:var(--red)}
 #nxtab td.c:focus{outline:3px solid var(--ac);outline-offset:-3px}
 #nxtab td.c input{width:100%;border:0;outline:2px solid var(--ac);border-radius:3px;padding:2px 4px;font:inherit;background:var(--card);color:var(--tx)}
 #nxtab td.c:not(.t) input{text-align:right}
@@ -426,7 +425,7 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
       <div class="oyms" id="nxms"></div>
       <button type="button" id="nxx" style="margin-left:auto">Excelga yuklash</button>
     </div>
-    <p class="hint" style="margin:0"><b>Naxd pul</b> — kunlik savdodagi NAXD PUL (bu yerda yozsangiz, kunlik savdoga ham tushadi). <b>Ishlatildi</b> va <b>Sababi</b> — kunlik savdoda izohiga “kechagi” deb yozilgan summalar; ularni qoʻshish uchun katakni bosing, oʻsha kun ochiladi.</p>
+    <p class="hint" style="margin:0"><b>Naxd pul</b> — kunlik savdodagi NAXD PUL (bu yerda yozsangiz, kunlik savdoga ham tushadi). <b>Ishlatildi</b> va <b>Sababi</b> — bu yerga oʻzingiz yozasiz; kunlik savdoda izohiga “kechagi” deb yozilgan summalar ham bularga oʻzi qoʻshiladi.</p>
     <div class="box"><div class="sc" id="nxtab"></div></div>
   </section>
   <section id="v-oy" hidden style="display:grid;gap:14px">
@@ -1077,8 +1076,8 @@ function renderNx(force){
     +'<tr class="cr"><td>'+pm+'dan</td><td style="text-align:right">'+fmt(cr)+'</td><td></td><td>Oldingi oydan oʻtgan qoldiq</td></tr>'
     +ks.map(function(k){var x=nxDay(k);tp+=x.p;tu+=x.u;return '<tr><td class="td" data-open="'+k+'" title="Shu kunning savdosini ochish">'+dmy(k)+'</td>'
       +'<td class="c" tabindex="0" data-k="'+k+'" data-f="p" title="Bosing: kunlik savdodagi NAXD PULni yozish yoki tahrirlash">'+(x.p?fmt(x.p):"")+'</td>'
-      +'<td class="c a" tabindex="0" data-k="'+k+'" data-f="u" title="Izohida “kechagi” yozilgan summalar. Bosing: shu kunni ochish">'+(x.u?fmt(x.u):"")+'</td>'
-      +'<td class="c t a" tabindex="0" data-k="'+k+'" data-f="s" title="Bosing: shu kunni ochish">'+esc(x.s)+'</td></tr>'}).join("")
+      +'<td class="c a" tabindex="0" data-k="'+k+'" data-f="u" title="Bosing: ishlatilgan summani yozish. Kunlik savdodagi “kechagi” summalar oʻzi qoʻshiladi">'+(x.u?fmt(x.u):"")+'</td>'
+      +'<td class="c t" tabindex="0" data-k="'+k+'" data-f="s" title="Bosing: izoh yozish">'+esc(x.s)+'</td></tr>'}).join("")
     +'</tbody><tfoot><tr class="t"><td>JAMI</td><td style="text-align:right">'+fmt(tp)+'</td><td style="text-align:right">'+fmt(tu)+'</td><td>'+(nxTo?dmy(nxTo)+" holatiga":UZM[+nxM.slice(5,7)-1]+" oxiridagi")+' qoldiq: '+fmt(cr+tp-tu)+'</td></tr></tfoot></table>';
   if(fk){var t=$("nxtab").querySelector('td.c[data-k="'+fk[0]+'"][data-f="'+fk[1]+'"]');if(t)t.focus()}
 }
@@ -1106,11 +1105,11 @@ function nxSet(k,f,v){
 }
 function nxEdit(td,first){
   if(ROLE_RO()||td.querySelector("input"))return;
-  if(td.dataset.f!=="p"){open(td.dataset.k);say("Ishlatilgan summani shu kunda izohiga “kechagi” deb yozing.");return}
   var dd=nxDay(td.dataset.k);
-  if(dd.other){open(td.dataset.k);say("Bu kunda Naxd pulga bir nechta nom yozilgan, shu yerda tahrirlang.");return}
+  if(td.dataset.f==="p"&&dd.other){open(td.dataset.k);say("Bu kunda Naxd pulga bir nechta nom yozilgan, shu yerda tahrirlang.");return}
   var k=td.dataset.k,f=td.dataset.f,tr=td.parentNode,ri=[].indexOf.call(tr.parentNode.children,tr),ci=NXF.indexOf(f),x=NX[k]||{};
-  var v0=dd.p,i=document.createElement("input");
+  var v0=f==="p"?dd.p:f==="u"?dd.mu:dd.ms,i=document.createElement("input");
+  if(f==="u"&&dd.u!==dd.mu)i.title="Kunlik savdodagi “kechagi”: "+fmt(dd.u-dd.mu)+" — bu yerda faqat qoʻshimcha summa yoziladi";
   if(f!=="s"){i.className="amt";i.inputMode="text"}
   i.value=first!=null?first:(f==="s"?v0:(v0?fmt(v0):""));td.textContent="";td.appendChild(i);i.focus();
   if(first==null)i.select();else if(f!=="s")fmtInput(i);
@@ -1118,7 +1117,7 @@ function nxEdit(td,first){
   function fin(save,dr,dc){
     if(done)return;done=true;
     var v=f==="s"?i.value.trim().replace(/\s+/g," "):num(i.value);
-    if(save&&v!==v0)nxSetP(k,v);else renderNx(true);
+    if(save&&v!==v0){if(f==="p")nxSetP(k,v);else nxSet(k,f,v)}else renderNx(true);
     if(dr!=null)nxFocus(ri+dr,ci+dc);
   }
   if(f!=="s")i.addEventListener("input",function(){fmtInput(i)});
@@ -1872,9 +1871,9 @@ function bind(){
     if(e.key==="Enter"||e.key==="F2"){e.preventDefault();nxEdit(td);return}
     if((e.key==="Delete"||e.key==="Backspace")&&!ROLE_RO()){e.preventDefault();var dk=td.dataset.k,df=td.dataset.f,dd=nxDay(dk);
       if(df==="p"&&dd.p&&!dd.other){nxSetP(dk,0);nxFocus(r,c)}
-      else if(df!=="p"&&(dd.mu||dd.ms)){var x=Object.assign({},NX[dk]);delete x.u;delete x.s;if(!x.p)delete NX[dk];else NX[dk]=x;saveMap();renderNx(true);nxFocus(r,c)}
+      else if(df!=="p"&&(df==="u"?dd.mu:dd.ms)){nxSet(dk,df,"");nxFocus(r,c)}
       return}
-    if(/^[0-9]$/.test(e.key)&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&td.dataset.f==="p"){e.preventDefault();nxEdit(td,e.key)}
+    if(e.key.length===1&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&(td.dataset.f==="s"||/[0-9-]/.test(e.key))){e.preventDefault();nxEdit(td,e.key)}
   });
   $("nqa").addEventListener("input",function(){fmtInput(this)});
   $("nqtab").addEventListener("click",function(e){var td=e.target.closest&&e.target.closest("td.nqc");if(td)nqEdit(td)});
