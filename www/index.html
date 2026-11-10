@@ -65,6 +65,10 @@ body.rh #oytab td.oyc{cursor:default}
 #nqtab td.m{color:var(--red)}
 #nqtab small{display:block;color:var(--mut);font-size:12px;white-space:normal;text-align:right}
 #nqtab tr.neg td.q{color:var(--red)}
+.frtabs{display:flex;gap:0;border:2px solid var(--bd);border-radius:10px;overflow:hidden;width:max-content;max-width:100%}
+.frtabs button{border:0;border-radius:0;background:var(--card);color:var(--tx);padding:10px 22px;font-weight:700;font-size:16px}
+.frtabs button+button{border-left:2px solid var(--bd)}
+.frtabs button.on{background:var(--ac);color:var(--ac-tx)}
 .frc small.q{font-size:16px;font-weight:800;color:var(--red)}
 .frc small.ok{font-size:15px;font-weight:700;color:var(--ac)}
 #frtab table{border-collapse:collapse;font-size:15px;width:auto;min-width:min(100%,760px)}
@@ -447,7 +451,8 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
   </section>
   <section id="v-fr" hidden style="display:grid;gap:14px">
     <div class="bar"><button class="g" data-tab="main">← Asosiy boʻlim</button><h2 class="vt">Firmalar bilan hisob-kitob</h2></div>
-    <div class="nqtop"><div class="nqbig"><span>Jami qarz</span><b id="frall">0</b><small>Hamma firmalarga qarzimiz</small></div>
+    <div class="frtabs" role="tablist"><button type="button" role="tab" data-frty="n">Naxd</button><button type="button" role="tab" data-frty="s">Schot orqali</button></div>
+    <div class="nqtop"><div class="nqbig"><span>Jami qarz</span><b id="frall">0</b><small id="frals">Hamma firmalarga qarzimiz</small></div>
       <form class="nqset ro" id="fraf" autocomplete="off"><label>Yangi firma<input id="fran" list="nl" placeholder="Firma nomi" aria-label="Firma nomi" style="width:240px"></label><label>Boshlangʻich qarz<input id="fras" class="amt" inputmode="text" placeholder="0" aria-label="Boshlangʻich qarz"></label><button>+ Firma qoʻshish</button></form>
     </div>
     <input id="frq" type="search" placeholder="Firmani qidirish" aria-label="Firmani qidirish" style="max-width:320px">
@@ -465,7 +470,7 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
         <button id="frad">Qoʻshish</button>
       </form>
     </div>
-    <p class="hint" style="margin:0"><b>Toʻlandi</b> ustuniga kunlik savdoda shu firma nomiga yozilgan summalar oʻzi tushadi. Katakni bosib tahrirlash mumkin: Enter — saqlash, strelkalar — katakdan katakka, Delete — oʻchirish.</p>
+    <p class="hint" style="margin:0"><span id="frhint"><b>Toʻlandi</b> ustuniga kunlik savdoda shu firma nomiga yozilgan summalar oʻzi tushadi. </span>Katakni bosib tahrirlash mumkin: Enter — saqlash, strelkalar — katakdan katakka, Delete — oʻchirish.</p>
     <div class="box"><div class="sc" id="frtab"></div></div>
   </section>
   <section id="v-oy" hidden style="display:grid;gap:14px">
@@ -1091,22 +1096,26 @@ function renderXl(){
 
 /* — Firmalar — */
 var FRF=["k","t","iz"];
+function frTyOf(key){return key.slice(0,2)==="S|"?"s":"n"}
+function frNm(key){return key.slice(0,2)==="S|"?key.slice(2):key}
 function frRows(n){
-  var f=FR[n]||{s:0,e:{}},ks={},q=+f.s||0,out=[];
+  var f=FR[n]||{s:0,e:{}},ks={},q=+f.s||0,out=[],auto=frTyOf(n)==="n";
   Object.keys(f.e||{}).forEach(function(k){ks[k]=1});
-  Object.keys(days).forEach(function(k){if(days[k].items.some(function(i){return i.n===n}))ks[k]=1});
+  if(auto)Object.keys(days).forEach(function(k){if(days[k].items.some(function(i){return i.n===n}))ks[k]=1});
   Object.keys(ks).sort().forEach(function(k){
-    var x=(f.e||{})[k]||{},at=0;(days[k]?days[k].items:[]).forEach(function(i){if(i.n===n)at+=i.a});
+    var x=(f.e||{})[k]||{},at=0;if(auto)(days[k]?days[k].items:[]).forEach(function(i){if(i.n===n)at+=i.a});
     var kk=+x.k||0,tt=at+(+x.t||0);q+=kk-tt;out.push({k:k,kk:kk,tt:tt,at:at,mt:+x.t||0,iz:x.iz||"",q:q});
   });
   return {rows:out,s:+f.s||0,q:q};
 }
 function renderFr(){
-  var names=Object.keys(FR).sort(),qs=$("frq").value.trim().toUpperCase(),all=0;
+  [].forEach.call(document.querySelectorAll("[data-frty]"),function(b){var on=b.dataset.frty===frTy;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});
+  var names=Object.keys(FR).filter(function(k){return frTyOf(k)===frTy}).sort(function(a,b){return frNm(a)<frNm(b)?-1:1}),qs=$("frq").value.trim().toUpperCase(),all=0;
+  $("frals").textContent=frTy==="n"?"Naxd hisob-kitob qilinadigan firmalarga qarzimiz":"Schot orqali toʻlanadigan firmalarga qarzimiz";
   var R0=names.map(function(n){var r=frRows(n);all+=r.q;return [n,r]});
   $("frall").textContent=fmt(all)+" soʻm";
-  var L=R0.filter(function(x){return !qs||x[0].indexOf(qs)>=0});
-  $("frl").innerHTML=L.length?L.map(function(x){var r=x[1],last=r.rows.length?r.rows[r.rows.length-1].k:"";return '<button class="ht ct frc" data-frn="'+esc(x[0])+'"><b>'+esc(tcase(x[0]))+'</b>'+(r.q>0?'<small class="q">Qarz: '+fmt(r.q)+' soʻm</small>':r.q<0?'<small class="ok">Ortiqcha toʻlangan: '+fmt(-r.q)+'</small>':'<small class="ok">Qarz yoʻq</small>')+'<small>'+(last?"Oxirgi: "+dmy(last):"Yozuv yoʻq")+'</small></button>'}).join(""):'<p class="hint" style="margin:0">'+(names.length?"Topilmadi.":"Hali firma qoʻshilmagan. Yuqorida firma nomini yozib qoʻshing.")+'</p>';
+  var L=R0.filter(function(x){return !qs||frNm(x[0]).indexOf(qs)>=0});
+  $("frl").innerHTML=L.length?L.map(function(x){var r=x[1],last=r.rows.length?r.rows[r.rows.length-1].k:"";return '<button class="ht ct frc" data-frn="'+esc(x[0])+'"><b>'+esc(tcase(frNm(x[0])))+'</b>'+(r.q>0?'<small class="q">Qarz: '+fmt(r.q)+' soʻm</small>':r.q<0?'<small class="ok">Ortiqcha toʻlangan: '+fmt(-r.q)+'</small>':'<small class="ok">Qarz yoʻq</small>')+'<small>'+(last?"Oxirgi: "+dmy(last):"Yozuv yoʻq")+'</small></button>'}).join(""):'<p class="hint" style="margin:0">'+(names.length?"Topilmadi.":"Hali firma qoʻshilmagan. Yuqorida firma nomini yozib qoʻshing.")+'</p>';
 }
 function renderFrd(force){
   var n=frCur;if(!n||!FR[n]){setTab("fr");return}
@@ -1114,7 +1123,8 @@ function renderFrd(force){
   if(ae&&ae.tagName==="INPUT"&&$("frtab").contains(ae)&&!force)return;
   var fk=ae&&ae.classList&&ae.classList.contains("c")&&$("frtab").contains(ae)?[ae.dataset.k,ae.dataset.f]:null;
   var r=frRows(n),tk=0,tt=0;
-  $("frT").textContent=tcase(n);
+  $("frT").textContent=tcase(frNm(n))+(frTyOf(n)==="s"?" — schot orqali":" — naxd");
+  $("frhint").hidden=frTyOf(n)!=="n";
   $("frq1").textContent=fmt(r.q)+" soʻm";$("frq2").textContent=r.q<0?"Ortiqcha toʻlangan":"Boshlangʻich qarz: "+fmt(r.s);
   if(!$("frd").value)dpSet("frd",today());
   $("frtab").innerHTML='<table><thead><tr><th>Sana</th><th>Tovar keldi</th><th>Toʻlandi</th><th>Izoh</th><th>Qarz</th></tr></thead><tbody>'
@@ -1162,16 +1172,16 @@ function frEdit(td,first){
 async function frExcel(){
   if(typeof XLSX==="undefined")return say("Excel kutubxonasi yuklanmadi. Internetni tekshiring.",true);
   var n=frCur,r=frRows(n),tk=0,tt=0;
-  var rows=[[tcase(n)+" — qarzimiz","","","",r.q],["Sana","Tovar keldi","Toʻlandi","Izoh","Qarz"]];
+  var rows=[[tcase(frNm(n))+(frTyOf(n)==="s"?" (schot)":" (naxd)")+" — qarzimiz","","","",r.q],["Sana","Tovar keldi","Toʻlandi","Izoh","Qarz"]];
   if(r.s)rows.push(["Boshida",null,null,"Boshlangʻich qarz",r.s]);
   r.rows.forEach(function(x){tk+=x.kk;tt+=x.tt;rows.push([dmy(x.k),x.kk||null,x.tt||null,x.iz,x.q])});
   rows.push(["JAMI",tk,tt,"",r.q]);
   var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=[{wch:12},{wch:14},{wch:14},{wch:36},{wch:14}];
   Object.keys(ws).forEach(function(c){if(c[0]!=="!"&&ws[c].t==="n")ws[c].z="#,##0"});
-  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,tcase(n).slice(0,28).replace(/[\\\/?*\[\]:]/g," "));
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,tcase(frNm(n)).slice(0,28).replace(/[\\\/?*\[\]:]/g," "));
   var buf=XLSX.write(wb,{type:"array",bookType:"xlsx"});
   if(!dlcap)return say("Bu oynada faylni saqlab boʻlmaydi.",true);
-  try{await dlcap.save({filename:"Firma-"+tcase(n).replace(/\s+/g,"-")+"-"+today()+".xlsx",data:buf});say("Excel fayl saqlandi")}
+  try{await dlcap.save({filename:"Firma-"+(frTyOf(n)==="s"?"schot-":"naxd-")+tcase(frNm(n)).replace(/\s+/g,"-")+"-"+today()+".xlsx",data:buf});say("Excel fayl saqlandi")}
   catch(e){if(e&&e.code!=="declined")say("Fayl saqlanmadi: qayta urinib koʻring.",true)}
 }
 
@@ -1704,7 +1714,7 @@ var ORDER=["Naxd pul","Humo","Uzcard","QR toʻlov","Naxd tovar","Oylik","Rasxod"
 var edN=null,catR={},custom=BASE.slice();
 function mergeCust(a){custom=BASE.concat(a.filter(function(c){return BASE.indexOf(c)<0}))}
 var catMap={"NAXD TOVAR":"Naxd tovar","NAM EKOMED":"Naxd tovar","TRICHAP":"Naxd tovar","SNIKERS":"Naxd tovar","OYLIK":"Oylik","KLIK":"Klik","JAHONMED BIO":"Jahonmed Bio"},mapDoc=null,curCat="",cm="";
-var CM0=Object.assign({},catMap),FR={},frCur="",OYX={},OYN={},NX={},nxM=today().slice(0,7),nxTo="",NQ={s:"2026-11-08",a:0},OYE={},HC=[],CORE=["Naxd pul","Humo","Uzcard","QR toʻlov","Rasxod"],ORD=[],moved=false,hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
+var CM0=Object.assign({},catMap),FR={},frCur="",frTy="n",OYX={},OYN={},NX={},nxM=today().slice(0,7),nxTo="",NQ={s:"2026-11-08",a:0},OYE={},HC=[],CORE=["Naxd pul","Humo","Uzcard","QR toʻlov","Rasxod"],ORD=[],moved=false,hid=[],PINN=["NAXD PUL","HUMO","UZCARD","QR KOD","NAXD TOVAR","OYLIK","RASXOD","KLIK","JAHONMED BIO"],cdMode="",cdName="";
 function allCats(){return ORDER.concat(custom.filter(function(c){return BASE.indexOf(c)<0})).filter(function(c){return HC.indexOf(c)<0})}
 function canDelCat(c){return CORE.indexOf(c)<0&&allCats().indexOf(c)>=0}
 function addCat(n){var h=HC.filter(function(c){return c.toUpperCase()===n.toUpperCase()})[0];if(h){HC.splice(HC.indexOf(h),1);return h}custom.push(n);return n}
@@ -1817,7 +1827,7 @@ function catDelAsk(){
 }
 function catDelGo(yes){
   $("cdov").hidden=true;
-  if(cdMode==="fr"){cdMode="";if(yes){delete FR[cdName];saveMap();setTab("fr");say("Firma oʻchirildi: "+tcase(cdName))}return}
+  if(cdMode==="fr"){cdMode="";if(yes){delete FR[cdName];saveMap();setTab("fr");say("Firma oʻchirildi: "+tcase(frNm(cdName)))}return}
   if(cdMode==="oyi"){cdMode="";$("cdyes").textContent="Ha, oʻchirish";if(yes)oyImpGo();else OYI=null;return}
   if(cdMode==="oy"){
     var on=cdName;cdMode="";if(!yes)return;
@@ -1986,12 +1996,15 @@ function bind(){
     catMap[n]="Oylik";delete OYE[n];hid=hid.filter(function(x){return x!==n});saveMap();chips();$("oyan").value="";renderOy();say("Xodim qoʻshildi: "+tcase(n));
   });
   $("fraf").addEventListener("submit",function(e){
-    e.preventDefault();var n=norm($("fran").value);if(!n)return say("Firma nomini yozing.",true);
-    if(FR[n])return say(tcase(n)+" roʻyxatda bor.",true);
-    FR[n]={s:num($("fras").value),e:{}};saveMap();$("fran").value="";$("fras").value="";frCur=n;setTab("frd");say("Firma qoʻshildi: "+tcase(n));
+    e.preventDefault();var n0=norm($("fran").value);if(!n0)return say("Firma nomini yozing.",true);
+    var n=frTy==="s"?"S|"+n0:n0;
+    if(FR[n])return say(tcase(n0)+" bu roʻyxatda bor.",true);
+    FR[n]={s:num($("fras").value),e:{}};saveMap();$("fran").value="";$("fras").value="";frCur=n;setTab("frd");say("Firma qoʻshildi: "+tcase(n0)+(frTy==="s"?" (schot orqali)":" (naxd)"));
   });
   $("fras").addEventListener("input",function(){fmtInput(this)});
   $("frq").addEventListener("input",renderFr);
+  [].forEach.call(document.querySelectorAll("[data-frty]"),function(b){b.onclick=function(){frTy=b.dataset.frty;try{localStorage.setItem("dh-frty",frTy)}catch(e){}renderFr()}});
+  try{frTy=localStorage.getItem("dh-frty")==="s"?"s":"n"}catch(e){}
   $("frl").addEventListener("click",function(e){var b=e.target.closest("[data-frn]");if(b){frCur=b.dataset.frn;dpSet("frd",today());setTab("frd")}});
   ["frk","frt"].forEach(function(id){$(id).addEventListener("input",function(){fmtInput(this)})});
   $("fref").addEventListener("submit",function(e){
@@ -2002,7 +2015,7 @@ function bind(){
     saveMap();$("frk").value="";$("frt").value="";$("friz").value="";renderFrd(true);$("frk").focus();say(dmy(k)+": qoʻshildi");
   });
   $("frx").onclick=frExcel;
-  $("frdel").onclick=function(){cdMode="fr";cdName=frCur;$("cdw").textContent=tcase(frCur);$("cdq").lastChild.textContent="Bu firma oʻchirilsinmi?";$("cdh").textContent="Firmaga yozilgan tovar va toʻlovlar shu boʻlimdan oʻchadi. Kunlik savdodagi yozuvlar oʻchmaydi.";$("cdov").hidden=false;$("cdno").focus()};
+  $("frdel").onclick=function(){cdMode="fr";cdName=frCur;$("cdw").textContent=tcase(frNm(frCur));$("cdq").lastChild.textContent="Bu firma oʻchirilsinmi?";$("cdh").textContent="Firmaga yozilgan tovar va toʻlovlar shu boʻlimdan oʻchadi. Kunlik savdodagi yozuvlar oʻchmaydi.";$("cdov").hidden=false;$("cdno").focus()};
   $("frtab").addEventListener("click",function(e){var td=e.target.closest&&e.target.closest("td.c");if(td)frEdit(td)});
   $("frtab").addEventListener("keydown",function(e){
     var td=e.target.closest&&e.target.closest("td.c");if(!td||e.target!==td)return;
