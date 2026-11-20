@@ -148,6 +148,10 @@ body.rh .ro,body.rh .cne{display:none!important}
 .lg{min-height:100vh;display:grid;place-items:center;padding:16px}
 .lg h1{text-align:center}
 .rhl{grid-column:1/-1;display:grid;gap:12px}
+.rhbk{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.rhbk b{font-size:20px}
+body.rh #v-main .mgo{display:none!important}
+body.rh.rhin #v-main .mgo{display:flex!important}
 .rhw{display:grid;gap:4px;min-width:0}
 .rhw button.pdl{justify-self:end;padding:3px 8px;font-size:12.5px;color:var(--red);border-color:transparent;background:transparent;font-weight:500}
 .rcp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}
@@ -437,6 +441,7 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
   <section id="v-main" class="hm">
     <div class="miss hrem" id="hrem" hidden></div>
     <div class="rhl" id="rhl" hidden></div>
+    <div class="rhbk" id="rhbk" hidden><button type="button" class="g">← Dorixonalar</button><b id="rhbn"></b></div>
     <button class="ht main mgo ro" data-tab="home"><b>KUNLIK SAVDO</b><span class="mar" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></button>
     <button class="ht mgo oyg" data-tab="nx"><b>NAXD PUL</b><span class="mar" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></button>
     <button class="ht mgo oyg" data-tab="sh"><b>SCHOT HISOBI</b><span class="mar" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></button>
@@ -2037,7 +2042,11 @@ function setTab(t){
   if(dirty&&tab==="enter"&&t!=="enter"){guard(function(){setTab(t)});return}
   tab=t;
   if((t==="oy"||t==="nx"||t==="fr"||t==="frd"||t==="sh")&&document.body.classList.contains("rh")&&typeof scope!=="undefined"&&!scope&&typeof applyScope==="function"){scope="all";applyScope()}
-  if(t==="main"&&ROLE==="rh"){scope="";head="Rahbar";showHead()}
+  if(t==="main"&&ROLE==="rh"){
+    if(!rhIn){scope="";head="Rahbar";showHead()}
+    document.body.classList.toggle("rhin",rhIn);$("rhl").hidden=rhIn;$("rhbk").hidden=!rhIn;
+    if(rhIn){var pn=scope==="all"?"Umumiy (hamma dorixonalar)":((PHS.filter(function(p){return p.id===scope})[0]||{}).name||scope);$("rhbn").textContent=pn}
+  }
   ["main","home","cats","cat","enter","rep","imp","xl","oy","nq","nx","fr","frd","sh"].forEach(function(k){$("v-"+k).hidden=k!==t});
   if(t==="sh")renderSh();
   if(t==="fr")renderFr();if(t==="frd")renderFrd();
@@ -2408,7 +2417,8 @@ function applyScope(){
   head=scope==="all"?"Barcha dorixonalar":(PHS.filter(function(p){return p.id===scope})[0]||{}).name||scope;
   showHead();refresh();
 }
-function setScope(id){scope=id;applyScope();setTab("home")}
+var rhIn=false;
+function setScope(id){scope=id;applyScope();rhIn=true;setTab("main")}
 function phMonth(id,m){var d=allDays[id]||{};return Object.keys(d).reduce(function(a,k){return a+(k.slice(0,7)===m?sum(d[k]):0)},0)}
 function phRange(id,f,t){var d=allDays[id]||{};return Object.keys(d).reduce(function(a,k){return a+(k>=f&&k<=t?sum(d[k]):0)},0)}
 var pdId="";
@@ -2538,6 +2548,7 @@ function startRh(){
   $("rhl").hidden=false;renderRh();
   document.addEventListener("click",function(e){
     var b=e.target.closest&&e.target.closest("[data-sc]");if(b)setScope(b.dataset.sc);
+    if(e.target.closest&&e.target.closest("#rhbk button")){rhIn=false;setTab("main")}
     if(e.target.id==="bkp")bkp();
     var pr=e.target.closest&&e.target.closest("[data-pr]");
     if(pr){prId=pr.dataset.pr;$("prw").textContent=(PHS.filter(function(p){return p.id===prId})[0]||{}).name||prId;$("prl").value="";$("prp").value="";$("prov").hidden=false;$("prl").focus()}
