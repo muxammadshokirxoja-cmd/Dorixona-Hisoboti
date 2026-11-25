@@ -499,7 +499,6 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
   </section>
   <section id="v-fr" hidden style="display:grid;gap:14px">
     <div class="bar"><button class="g" data-tab="main">← Asosiy boʻlim</button><h2 class="vt">Firmalar bilan hisob-kitob</h2></div>
-    <div class="frtabs" role="tablist"><button type="button" role="tab" data-frty="n">Naxd</button><button type="button" role="tab" data-frty="s">Schot orqali</button></div>
     <div class="nqtop"><div class="nqbig"><span>Jami qarz</span><b id="frall">0</b><small id="frals">Hamma firmalarga qarzimiz</small></div>
       <form class="nqset ro" id="fraf" autocomplete="off"><label>Yangi firma<input id="fran" list="nl" placeholder="Firma nomi" aria-label="Firma nomi" style="width:240px"></label><label>Sana<span class="dp"><input id="frsd-v" inputmode="numeric" maxlength="10" placeholder="kk.oo.yyyy" autocomplete="off" aria-label="Boshlangʻich qarz sanasi"><button type="button" class="dpb" data-dp="frsd" aria-label="Taqvimni ochish"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button><input type="hidden" id="frsd"></span></label><label>Boshlangʻich qarz<input id="fras" class="amt" inputmode="text" placeholder="0" aria-label="Boshlangʻich qarz"></label><button>+ Firma qoʻshish</button></form>
     </div>
@@ -513,7 +512,8 @@ button.aadd{color:var(--ac);border-color:var(--ac)}
       <form class="nqset ro" id="fref" autocomplete="off">
         <label>Sana<span class="dp"><input id="frd-v" inputmode="numeric" maxlength="10" placeholder="kk.oo.yyyy" autocomplete="off" aria-label="Sana"><button type="button" class="dpb" data-dp="frd" aria-label="Taqvimni ochish"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button><input type="hidden" id="frd"></span></label>
         <label>Tovar keldi<input id="frk" class="amt" inputmode="text" placeholder="0" aria-label="Tovar keldi"></label>
-        <label>Toʻlandi<input id="frt" class="amt" inputmode="text" placeholder="0" aria-label="Toʻlandi"></label>
+        <label>Naxd toʻlandi<input id="frt" class="amt" inputmode="text" placeholder="0" aria-label="Naxd toʻlandi"></label>
+        <label>Schot orqali toʻlandi<input id="frts" class="amt" inputmode="text" placeholder="0" aria-label="Schot orqali toʻlandi"></label>
         <label>Izoh<input id="friz" placeholder="Nakladnoy №, izoh" aria-label="Izoh" style="width:220px"></label>
         <button id="frad">Qoʻshish</button>
       </form>
@@ -1186,26 +1186,38 @@ async function shExcel(){
 }
 
 /* — Firmalar — */
-var FRF=["k","t","iz"];
+var FRF=["k","t","ts","iz"];
 function frTyOf(key){return key.slice(0,2)==="S|"?"s":"n"}
 function frNm(key){return key.slice(0,2)==="S|"?key.slice(2):key}
+function frMigrate(){
+  var ch=false;
+  Object.keys(FR).forEach(function(key){
+    if(key.slice(0,2)!=="S|")return;
+    var nm=key.slice(2),S0=FR[key],B=FR[nm];ch=true;
+    if(!B){B=FR[nm]={s:0,sd:S0.sd||"",e:{}}}
+    B.s=(+B.s||0)+(+S0.s||0);if(S0.sd&&(!B.sd||S0.sd<B.sd))B.sd=S0.sd;B.e=B.e||{};
+    Object.keys(S0.e||{}).forEach(function(k){var a=Object.assign({},B.e[k]||{}),b=S0.e[k];if(b.k)a.k=(+a.k||0)+(+b.k);if(b.t)a.ts=(+a.ts||0)+(+b.t);if(b.iz)a.iz=a.iz?a.iz+"; "+b.iz:b.iz;B.e[k]=a});
+    delete FR[key];
+  });
+  if(ch&&!ROLE_RO())saveMap();
+}
 function frRows(n){
-  var f=FR[n]||{s:0,e:{}},ks={},q=+f.s||0,out=[],isS=frTyOf(n)==="s",nm=frNm(n),sd=f.sd||"";
-  var hasS=!!FR["S|"+nm];
-  function mine(i){return i.n===nm&&(isS?sch(i):(!sch(i)||!hasS))}
+  var f=FR[n]||{s:0,e:{}},ks={},q=+f.s||0,out=[],nm=frNm(n),sd=f.sd||"";
+  function mine(i){return i.n===nm}
   Object.keys(f.e||{}).forEach(function(k){ks[k]=1});
   Object.keys(days).forEach(function(k){if((!sd||k>=sd)&&days[k].items.some(mine))ks[k]=1});
   Object.keys(ks).sort().forEach(function(k){
-    var x=(f.e||{})[k]||{},at=0;if(!sd||k>=sd)(days[k]?days[k].items:[]).forEach(function(i){if(mine(i))at+=i.a});
-    var kk=+x.k||0,tt=at+(+x.t||0);q+=kk-tt;out.push({k:k,kk:kk,tt:tt,at:at,mt:+x.t||0,iz:x.iz||"",q:q});
+    var x=(f.e||{})[k]||{},an=0,as=0;if(!sd||k>=sd)(days[k]?days[k].items:[]).forEach(function(i){if(mine(i)){if(sch(i))as+=i.a;else an+=i.a}});
+    var kk=+x.k||0,tn=an+(+x.t||0),ts=as+(+x.ts||0),tt=tn+ts;q+=kk-tt;
+    out.push({k:k,kk:kk,tn:tn,ts:ts,tt:tt,an:an,as:as,mt:+x.t||0,ms:+x.ts||0,iz:x.iz||"",q:q});
   });
   return {rows:out,s:+f.s||0,sd:sd,q:q};
 }
 function renderFr(){
-  [].forEach.call(document.querySelectorAll("[data-frty]"),function(b){var on=b.dataset.frty===frTy;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});
+  frMigrate();
   if(!$("frsd").value&&!$("frsd-v").value)dpSet("frsd",today());
-  var names=Object.keys(FR).filter(function(k){return frTyOf(k)===frTy}).sort(function(a,b){return frNm(a)<frNm(b)?-1:1}),qs=$("frq").value.trim().toUpperCase(),all=0;
-  $("frals").textContent=frTy==="n"?"Naxd hisob-kitob qilinadigan firmalarga qarzimiz":"Schot orqali toʻlanadigan firmalarga qarzimiz";
+  var names=Object.keys(FR).sort(function(a,b){return frNm(a)<frNm(b)?-1:1}),qs=$("frq").value.trim().toUpperCase(),all=0;
+  $("frals").textContent="Hamma firmalarga qarzimiz (naxd va schot orqali birga)";
   var R0=names.map(function(n){var r=frRows(n);all+=r.q;return [n,r]});
   $("frall").textContent=fmt(all)+" soʻm";
   var L=R0.filter(function(x){return !qs||frNm(x[0]).indexOf(qs)>=0});
@@ -1216,18 +1228,21 @@ function renderFrd(force){
   var ae=document.activeElement;
   if(ae&&ae.tagName==="INPUT"&&$("frtab").contains(ae)&&!force)return;
   var fk=ae&&ae.classList&&ae.classList.contains("c")&&$("frtab").contains(ae)?[ae.dataset.k,ae.dataset.f]:null;
-  var r=frRows(n),tk=0,tt=0;
-  $("frT").textContent=tcase(frNm(n))+(frTyOf(n)==="s"?" — schot orqali":" — naxd");
-  $("frhint").innerHTML=frTyOf(n)==="s"?"<b>Toʻlandi</b> ustuniga kunlik savdoda shu firma nomiga izohi “schot” bilan yozilgan summalar oʻzi tushadi. ":"<b>Toʻlandi</b> ustuniga kunlik savdoda shu firma nomiga yozilgan summalar oʻzi tushadi. Izohi “schot” boʻlganlari, agar firma “Schot orqali” roʻyxatida ham boʻlsa, oʻsha yerga tushadi, boʻlmasa shu yerga. ";
+  frMigrate();
+  var r=frRows(n),tk=0,tn=0,ts=0;
+  $("frT").textContent=tcase(frNm(n));
+  $("frhint").innerHTML="Kunlik savdoda shu firma nomiga yozilgan summalar oʻzi tushadi: izohi “schot” boʻlsa — <b>Schot orqali</b> ustuniga, boʻlmasa — <b>Naxd</b> ustuniga. ";
   $("frq1").textContent=fmt(r.q)+" soʻm";$("frq2").textContent=r.q<0?"Ortiqcha toʻlangan":"Boshlangʻich qarz"+(r.sd?" ("+dmy(r.sd)+")":"")+": "+fmt(r.s);
   if(!$("frd").value)dpSet("frd",today());
-  $("frtab").innerHTML='<table><thead><tr><th>Sana</th><th>Tovar keldi</th><th>Toʻlandi</th><th>Izoh</th><th>Qarz</th></tr></thead><tbody>'
-    +r.rows.slice().reverse().map(function(x){tk+=x.kk;tt+=x.tt;return '<tr><td data-open="'+x.k+'" title="Shu kunning savdosini ochish">'+dmy(x.k)+'</td>'
+  function sub(a,m){return a&&m?'<small>kunlik savdodan '+fmt(a)+'</small>':a?'<small>kunlik savdodan</small>':''}
+  $("frtab").innerHTML='<table><thead><tr><th>Sana</th><th>Tovar keldi</th><th>Naxd toʻlandi</th><th>Schot orqali</th><th>Izoh</th><th>Qarz</th></tr></thead><tbody>'
+    +r.rows.slice().reverse().map(function(x){tk+=x.kk;tn+=x.tn;ts+=x.ts;return '<tr><td data-open="'+x.k+'" title="Shu kunning savdosini ochish">'+dmy(x.k)+'</td>'
       +'<td class="c" tabindex="0" data-k="'+x.k+'" data-f="k">'+(x.kk?fmt(x.kk):"")+'</td>'
-      +'<td class="c" tabindex="0" data-k="'+x.k+'" data-f="t" title="'+(x.at?"Kunlik savdodan: "+fmt(x.at):"")+'">'+(x.tt?fmt(x.tt):"")+(x.at&&x.mt?'<small>kunlik savdodan '+fmt(x.at)+'</small>':x.at?'<small>kunlik savdodan</small>':'')+'</td>'
+      +'<td class="c" tabindex="0" data-k="'+x.k+'" data-f="t">'+(x.tn?fmt(x.tn):"")+sub(x.an,x.mt)+'</td>'
+      +'<td class="c" tabindex="0" data-k="'+x.k+'" data-f="ts">'+(x.ts?fmt(x.ts):"")+sub(x.as,x.ms)+'</td>'
       +'<td class="c t" tabindex="0" data-k="'+x.k+'" data-f="iz">'+esc(x.iz)+'</td><td class="q">'+fmt(x.q)+'</td></tr>'}).join("")
-    +(r.s||r.sd?'<tr><td>'+(r.sd?dmy(r.sd):"Boshida")+'</td><td></td><td></td><td>Boshlangʻich qarz</td><td class="q">'+fmt(r.s)+'</td></tr>':'')
-    +'</tbody><tfoot><tr class="t"><td>JAMI</td><td style="text-align:right">'+fmt(tk)+'</td><td style="text-align:right">'+fmt(tt)+'</td><td></td><td style="text-align:right">'+fmt(r.q)+'</td></tr></tfoot></table>';
+    +(r.s||r.sd?'<tr><td>'+(r.sd?dmy(r.sd):"Boshida")+'</td><td></td><td></td><td></td><td>Boshlangʻich qarz</td><td class="q">'+fmt(r.s)+'</td></tr>':'')
+    +'</tbody><tfoot><tr class="t"><td>JAMI</td><td style="text-align:right">'+fmt(tk)+'</td><td style="text-align:right">'+fmt(tn)+'</td><td style="text-align:right">'+fmt(ts)+'</td><td></td><td style="text-align:right">'+fmt(r.q)+'</td></tr></tfoot></table>';
   if(!r.rows.length)$("frtab").innerHTML+='<p class="hint" style="padding:12px;margin:0">Hali yozuv yoʻq. Yuqoridagi formadan tovar kelgani yoki toʻlovni qoʻshing.</p>';
   if(fk){var t=$("frtab").querySelector('td.c[data-k="'+fk[0]+'"][data-f="'+fk[1]+'"]');if(t)t.focus()}
 }
@@ -1235,7 +1250,7 @@ function frSet(k,f,v){
   var F=FR[frCur];if(!F)return;F.e=F.e||{};
   var x=Object.assign({},F.e[k]||{});
   if(v===""||v===0||v==null)delete x[f];else x[f]=v;
-  if(!x.k&&!x.t&&!x.iz)delete F.e[k];else F.e[k]=x;
+  if(!x.k&&!x.t&&!x.ts&&!x.iz)delete F.e[k];else F.e[k]=x;
   saveMap();renderFrd(true);
 }
 function frFocus(r,c){var rs=document.querySelectorAll("#frtab tbody tr");if(!rs.length)return;r=Math.max(0,Math.min(rs.length-1,r));var cs=rs[r].querySelectorAll("td.c");if(!cs.length)return;var t=cs[Math.max(0,Math.min(cs.length-1,c))];if(t){t.focus();t.scrollIntoView({block:"nearest"})}}
@@ -1244,7 +1259,7 @@ function frEdit(td,first){
   var k=td.dataset.k,f=td.dataset.f,tr=td.parentNode,ri=[].indexOf.call(tr.parentNode.children,tr),ci=FRF.indexOf(f),x=((FR[frCur]||{}).e||{})[k]||{};
   var v0=f==="iz"?(x.iz||""):(+x[f]||0),i=document.createElement("input");
   if(f!=="iz"){i.className="amt";i.inputMode="text"}
-  if(f==="t"){var at=0,isS=frTyOf(frCur)==="s",nm=frNm(frCur),hasS=!!FR["S|"+nm];(days[k]?days[k].items:[]).forEach(function(it){if(it.n===nm&&(isS?sch(it):(!sch(it)||!hasS)))at+=it.a});if(at)i.title="Kunlik savdodagi "+fmt(at)+" oʻzi qoʻshiladi — bu yerga faqat qoʻshimcha toʻlov yoziladi"}
+  if(f==="t"||f==="ts"){var at=0,nm=frNm(frCur);(days[k]?days[k].items:[]).forEach(function(it){if(it.n===nm&&sch(it)===(f==="ts"))at+=it.a});if(at)i.title="Kunlik savdodagi "+fmt(at)+" oʻzi qoʻshiladi — bu yerga faqat qoʻshimcha toʻlov yoziladi"}
   i.value=first!=null?first:(f==="iz"?v0:(v0?fmt(v0):""));td.textContent="";td.appendChild(i);i.focus();
   if(first==null)i.select();else if(f!=="iz")fmtInput(i);
   var done=false;
@@ -1266,16 +1281,16 @@ function frEdit(td,first){
 async function frExcel(){
   if(typeof XLSX==="undefined")return say("Excel kutubxonasi yuklanmadi. Internetni tekshiring.",true);
   var n=frCur,r=frRows(n),tk=0,tt=0;
-  var rows=[[tcase(frNm(n))+(frTyOf(n)==="s"?" (schot)":" (naxd)")+" — qarzimiz","","","",r.q],["Sana","Tovar keldi","Toʻlandi","Izoh","Qarz"]];
-  if(r.s||r.sd)rows.push([r.sd?dmy(r.sd):"Boshida",null,null,"Boshlangʻich qarz",r.s]);
-  r.rows.forEach(function(x){tk+=x.kk;tt+=x.tt;rows.push([dmy(x.k),x.kk||null,x.tt||null,x.iz,x.q])});
-  rows.push(["JAMI",tk,tt,"",r.q]);
-  var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=[{wch:12},{wch:14},{wch:14},{wch:36},{wch:14}];
+  var tn=0,ts=0,rows=[[tcase(frNm(n))+" — qarzimiz","","","","",r.q],["Sana","Tovar keldi","Naxd toʻlandi","Schot orqali","Izoh","Qarz"]];
+  if(r.s||r.sd)rows.push([r.sd?dmy(r.sd):"Boshida",null,null,null,"Boshlangʻich qarz",r.s]);
+  r.rows.forEach(function(x){tk+=x.kk;tn+=x.tn;ts+=x.ts;rows.push([dmy(x.k),x.kk||null,x.tn||null,x.ts||null,x.iz,x.q])});
+  rows.push(["JAMI",tk,tn,ts,"",r.q]);
+  var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=[{wch:12},{wch:14},{wch:14},{wch:14},{wch:36},{wch:14}];
   Object.keys(ws).forEach(function(c){if(c[0]!=="!"&&ws[c].t==="n")ws[c].z="#,##0"});
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,tcase(frNm(n)).slice(0,28).replace(/[\\\/?*\[\]:]/g," "));
   var buf=XLSX.write(wb,{type:"array",bookType:"xlsx"});
   if(!dlcap)return say("Bu oynada faylni saqlab boʻlmaydi.",true);
-  try{await dlcap.save({filename:"Firma-"+(frTyOf(n)==="s"?"schot-":"naxd-")+tcase(frNm(n)).replace(/\s+/g,"-")+"-"+today()+".xlsx",data:buf});say("Excel fayl saqlandi")}
+  try{await dlcap.save({filename:"Firma-"+tcase(frNm(n)).replace(/\s+/g,"-")+"-"+today()+".xlsx",data:buf});say("Excel fayl saqlandi")}
   catch(e){if(e&&e.code!=="declined")say("Fayl saqlanmadi: qayta urinib koʻring.",true)}
 }
 
@@ -2152,23 +2167,22 @@ function bind(){
   });
   $("fraf").addEventListener("submit",function(e){
     e.preventDefault();var n0=norm($("fran").value);if(!n0)return say("Firma nomini yozing.",true);
-    var n=frTy==="s"?"S|"+n0:n0;
+    var n=n0;
     if(FR[n])return say(tcase(n0)+" bu roʻyxatda bor.",true);
     var sd=$("frsd").value;if(!sd&&$("frsd-v").value.trim())return say("Sanani toʻgʻri kiriting: kk.oo.yyyy",true);
-    FR[n]={s:num($("fras").value),sd:sd||today(),e:{}};saveMap();$("fran").value="";$("fras").value="";dpSet("frsd",today());frCur=n;setTab("frd");say("Firma qoʻshildi: "+tcase(n0)+(frTy==="s"?" (schot orqali)":" (naxd)"));
+    FR[n]={s:num($("fras").value),sd:sd||today(),e:{}};saveMap();$("fran").value="";$("fras").value="";dpSet("frsd",today());frCur=n;setTab("frd");say("Firma qoʻshildi: "+tcase(n0));
   });
   $("fras").addEventListener("input",function(){fmtInput(this)});
   $("frq").addEventListener("input",renderFr);
-  [].forEach.call(document.querySelectorAll("[data-frty]"),function(b){b.onclick=function(){frTy=b.dataset.frty;try{localStorage.setItem("dh-frty",frTy)}catch(e){}renderFr()}});
-  try{frTy=localStorage.getItem("dh-frty")==="s"?"s":"n"}catch(e){}
+
   $("frl").addEventListener("click",function(e){var b=e.target.closest("[data-frn]");if(b){frCur=b.dataset.frn;dpSet("frd",today());setTab("frd")}});
-  ["frk","frt"].forEach(function(id){$(id).addEventListener("input",function(){fmtInput(this)})});
+  ["frk","frt","frts"].forEach(function(id){$(id).addEventListener("input",function(){fmtInput(this)})});
   $("fref").addEventListener("submit",function(e){
-    e.preventDefault();var k=$("frd").value,kk=num($("frk").value),tt=num($("frt").value),iz=$("friz").value.trim();
-    if(!k)return say("Sanani kiriting.",true);if(!kk&&!tt&&!iz)return say("Summa yoki izoh yozing.",true);
+    e.preventDefault();var k=$("frd").value,kk=num($("frk").value),tt=num($("frt").value),t2=num($("frts").value),iz=$("friz").value.trim();
+    if(!k)return say("Sanani kiriting.",true);if(!kk&&!tt&&!t2&&!iz)return say("Summa yoki izoh yozing.",true);
     var F=FR[frCur];F.e=F.e||{};var x=Object.assign({},F.e[k]||{});
-    if(kk)x.k=(+x.k||0)+kk;if(tt)x.t=(+x.t||0)+tt;if(iz)x.iz=x.iz?x.iz+"; "+iz:iz;F.e[k]=x;
-    saveMap();$("frk").value="";$("frt").value="";$("friz").value="";renderFrd(true);$("frk").focus();say(dmy(k)+": qoʻshildi");
+    if(kk)x.k=(+x.k||0)+kk;if(tt)x.t=(+x.t||0)+tt;if(t2)x.ts=(+x.ts||0)+t2;if(iz)x.iz=x.iz?x.iz+"; "+iz:iz;F.e[k]=x;
+    saveMap();$("frk").value="";$("frt").value="";$("frts").value="";$("friz").value="";renderFrd(true);$("frk").focus();say(dmy(k)+": qoʻshildi");
   });
   $("frx").onclick=frExcel;
   $("frdel").onclick=function(){cdMode="fr";cdName=frCur;$("cdw").textContent=tcase(frNm(frCur));$("cdq").lastChild.textContent="Bu firma oʻchirilsinmi?";$("cdh").textContent="Firmaga yozilgan tovar va toʻlovlar shu boʻlimdan oʻchadi. Kunlik savdodagi yozuvlar oʻchmaydi.";$("cdov").hidden=false;$("cdno").focus()};
@@ -2415,7 +2429,7 @@ function applyScope(){
     });
     var mm=allMap[id]||{};Object.assign(m,mm.m||{});c=c.concat(mm.c||[]);
   });
-  days=o;catMap=m;mergeCust(c);ORD=ids.length===1?((allMap[ids[0]]||{}).o||[]).slice():[];HC=ids.length===1?((allMap[ids[0]]||{}).h||[]).slice():[];OYE=ids.length===1?Object.assign({},(allMap[ids[0]]||{}).e||{}):{};var nqx=ids.length===1&&(allMap[ids[0]]||{}).q;NQ=nqx&&nqx.s?{s:nqx.s,a:+nqx.a||0,o:nqx.o||{}}:{s:"2026-11-08",a:0,o:{}};SH={s:"2026-11-19",a:0};ids.forEach(function(id){var x=(allMap[id]||{}).sh;if(x&&x.s){SH.a+=+x.a||0;if(ids.length===1)SH.s=x.s}});OYS={};ids.forEach(function(id){var o=(allMap[id]||{}).os||{};Object.keys(o).forEach(function(m){OYS[m]=OYS[m]||{};Object.keys(o[m]).forEach(function(n){OYS[m][n]=(+OYS[m][n]||0)+(+o[m][n]||0)})})});FR={};ids.forEach(function(id){var ff=(allMap[id]||{}).fr||{};Object.keys(ff).forEach(function(n){var F=FR[n]=FR[n]||{s:0,e:{}};F.s+=+ff[n].s||0;if(ff[n].sd&&(!F.sd||ff[n].sd<F.sd))F.sd=ff[n].sd;Object.keys(ff[n].e||{}).forEach(function(k){var a=F.e[k]||{},b=ff[n].e[k];F.e[k]={k:(+a.k||0)+(+b.k||0),t:(+a.t||0)+(+b.t||0),iz:[a.iz,b.iz].filter(Boolean).join("; ")}})})});OYX={};OYN={};ids.forEach(function(id){var a=(allMap[id]||{});Object.keys(a.ox||{}).forEach(function(k){OYX[k]=OYX[k]||{};Object.keys(a.ox[k]).forEach(function(n){OYX[k][n]=(OYX[k][n]||0)+a.ox[k][n]})});Object.keys(a.on||{}).forEach(function(k){OYN[k]=OYN[k]?OYN[k]+"; "+a.on[k]:a.on[k]})});NX={};ids.forEach(function(id){var xx=(allMap[id]||{}).x||{};Object.keys(xx).forEach(function(k){var a=NX[k]||{},b=xx[k];NX[k]={p:(+a.p||0)+(+b.p||0),u:(+a.u||0)+(+b.u||0),s:[a.s,b.s].filter(Boolean).join("; ")}})});
+  days=o;catMap=m;mergeCust(c);ORD=ids.length===1?((allMap[ids[0]]||{}).o||[]).slice():[];HC=ids.length===1?((allMap[ids[0]]||{}).h||[]).slice():[];OYE=ids.length===1?Object.assign({},(allMap[ids[0]]||{}).e||{}):{};var nqx=ids.length===1&&(allMap[ids[0]]||{}).q;NQ=nqx&&nqx.s?{s:nqx.s,a:+nqx.a||0,o:nqx.o||{}}:{s:"2026-11-08",a:0,o:{}};SH={s:"2026-11-19",a:0};ids.forEach(function(id){var x=(allMap[id]||{}).sh;if(x&&x.s){SH.a+=+x.a||0;if(ids.length===1)SH.s=x.s}});OYS={};ids.forEach(function(id){var o=(allMap[id]||{}).os||{};Object.keys(o).forEach(function(m){OYS[m]=OYS[m]||{};Object.keys(o[m]).forEach(function(n){OYS[m][n]=(+OYS[m][n]||0)+(+o[m][n]||0)})})});FR={};ids.forEach(function(id){var ff=(allMap[id]||{}).fr||{};Object.keys(ff).forEach(function(n){var F=FR[n]=FR[n]||{s:0,e:{}};F.s+=+ff[n].s||0;if(ff[n].sd&&(!F.sd||ff[n].sd<F.sd))F.sd=ff[n].sd;Object.keys(ff[n].e||{}).forEach(function(k){var a=F.e[k]||{},b=ff[n].e[k];F.e[k]={k:(+a.k||0)+(+b.k||0),t:(+a.t||0)+(+b.t||0),ts:(+a.ts||0)+(+b.ts||0),iz:[a.iz,b.iz].filter(Boolean).join("; ")}})})});OYX={};OYN={};ids.forEach(function(id){var a=(allMap[id]||{});Object.keys(a.ox||{}).forEach(function(k){OYX[k]=OYX[k]||{};Object.keys(a.ox[k]).forEach(function(n){OYX[k][n]=(OYX[k][n]||0)+a.ox[k][n]})});Object.keys(a.on||{}).forEach(function(k){OYN[k]=OYN[k]?OYN[k]+"; "+a.on[k]:a.on[k]})});NX={};ids.forEach(function(id){var xx=(allMap[id]||{}).x||{};Object.keys(xx).forEach(function(k){var a=NX[k]||{},b=xx[k];NX[k]={p:(+a.p||0)+(+b.p||0),u:(+a.u||0)+(+b.u||0),s:[a.s,b.s].filter(Boolean).join("; ")}})});
   head=scope==="all"?"Barcha dorixonalar":(PHS.filter(function(p){return p.id===scope})[0]||{}).name||scope;
   showHead();refresh();
 }
