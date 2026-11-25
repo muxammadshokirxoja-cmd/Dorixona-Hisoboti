@@ -1191,7 +1191,8 @@ function frTyOf(key){return key.slice(0,2)==="S|"?"s":"n"}
 function frNm(key){return key.slice(0,2)==="S|"?key.slice(2):key}
 function frRows(n){
   var f=FR[n]||{s:0,e:{}},ks={},q=+f.s||0,out=[],isS=frTyOf(n)==="s",nm=frNm(n),sd=f.sd||"";
-  function mine(i){return i.n===nm&&sch(i)===isS}
+  var hasS=!!FR["S|"+nm];
+  function mine(i){return i.n===nm&&(isS?sch(i):(!sch(i)||!hasS))}
   Object.keys(f.e||{}).forEach(function(k){ks[k]=1});
   Object.keys(days).forEach(function(k){if((!sd||k>=sd)&&days[k].items.some(mine))ks[k]=1});
   Object.keys(ks).sort().forEach(function(k){
@@ -1217,7 +1218,7 @@ function renderFrd(force){
   var fk=ae&&ae.classList&&ae.classList.contains("c")&&$("frtab").contains(ae)?[ae.dataset.k,ae.dataset.f]:null;
   var r=frRows(n),tk=0,tt=0;
   $("frT").textContent=tcase(frNm(n))+(frTyOf(n)==="s"?" — schot orqali":" — naxd");
-  $("frhint").innerHTML=frTyOf(n)==="s"?"<b>Toʻlandi</b> ustuniga kunlik savdoda shu firma nomiga izohi “schot” bilan yozilgan summalar oʻzi tushadi. ":"<b>Toʻlandi</b> ustuniga kunlik savdoda shu firma nomiga yozilgan summalar oʻzi tushadi (izohi “schot” boʻlganlari bundan mustasno). ";
+  $("frhint").innerHTML=frTyOf(n)==="s"?"<b>Toʻlandi</b> ustuniga kunlik savdoda shu firma nomiga izohi “schot” bilan yozilgan summalar oʻzi tushadi. ":"<b>Toʻlandi</b> ustuniga kunlik savdoda shu firma nomiga yozilgan summalar oʻzi tushadi. Izohi “schot” boʻlganlari, agar firma “Schot orqali” roʻyxatida ham boʻlsa, oʻsha yerga tushadi, boʻlmasa shu yerga. ";
   $("frq1").textContent=fmt(r.q)+" soʻm";$("frq2").textContent=r.q<0?"Ortiqcha toʻlangan":"Boshlangʻich qarz"+(r.sd?" ("+dmy(r.sd)+")":"")+": "+fmt(r.s);
   if(!$("frd").value)dpSet("frd",today());
   $("frtab").innerHTML='<table><thead><tr><th>Sana</th><th>Tovar keldi</th><th>Toʻlandi</th><th>Izoh</th><th>Qarz</th></tr></thead><tbody>'
@@ -1243,7 +1244,7 @@ function frEdit(td,first){
   var k=td.dataset.k,f=td.dataset.f,tr=td.parentNode,ri=[].indexOf.call(tr.parentNode.children,tr),ci=FRF.indexOf(f),x=((FR[frCur]||{}).e||{})[k]||{};
   var v0=f==="iz"?(x.iz||""):(+x[f]||0),i=document.createElement("input");
   if(f!=="iz"){i.className="amt";i.inputMode="text"}
-  if(f==="t"){var at=0,isS=frTyOf(frCur)==="s",nm=frNm(frCur);(days[k]?days[k].items:[]).forEach(function(it){if(it.n===nm&&sch(it)===isS)at+=it.a});if(at)i.title="Kunlik savdodagi "+fmt(at)+" oʻzi qoʻshiladi — bu yerga faqat qoʻshimcha toʻlov yoziladi"}
+  if(f==="t"){var at=0,isS=frTyOf(frCur)==="s",nm=frNm(frCur),hasS=!!FR["S|"+nm];(days[k]?days[k].items:[]).forEach(function(it){if(it.n===nm&&(isS?sch(it):(!sch(it)||!hasS)))at+=it.a});if(at)i.title="Kunlik savdodagi "+fmt(at)+" oʻzi qoʻshiladi — bu yerga faqat qoʻshimcha toʻlov yoziladi"}
   i.value=first!=null?first:(f==="iz"?v0:(v0?fmt(v0):""));td.textContent="";td.appendChild(i);i.focus();
   if(first==null)i.select();else if(f!=="iz")fmtInput(i);
   var done=false;
